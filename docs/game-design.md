@@ -377,3 +377,181 @@ gostop-p2p/
  ├ network/      # WebRTC P2P 모듈
  └ server/       # Matchmaking 서버
 ```
+
+## 복붙 수준 레포 조합 — 빠른 MVP 전략
+
+핵심 전략: **3개 레포만 조합**하면 70% 완성.
+
+```
+1. 게임 엔진 (고스톱 룰)
+2. 카드게임 UI
+3. P2P 네트워크
+```
+
+### 1. 가장 쉬운 레포 조합 (추천)
+
+```
+flutter-cardgame  → 카드 UI
+flutter-webrtc    → P2P 연결
+gostop-js         → 게임 룰
+```
+
+**카드게임 UI — flutter-cardgame:**
+
+이미 구현된 기능:
+- 카드 이동 / 카드 애니메이션 / 드래그
+
+```
+deck → card → hand → table → animation
+```
+
+활용법: Solitaire → 맞고로 변환하면 됨.
+
+**P2P 네트워크 — flutter-webrtc:**
+
+```
+Player A <------> Player B
+         DataChannel
+```
+
+```dart
+send(json)    // 이벤트 전송
+receive(json) // 이벤트 수신
+```
+
+WebRTC는 Flutter에서 바로 사용 가능한 plugin. 샘플 프로젝트 **flutter-webrtc-demo**에 이미 방 생성, P2P 연결, 데이터 채널 구현됨.
+
+활용법: 채팅 → 게임 이벤트로 바꾸면 됨.
+
+**고스톱 게임 룰:**
+
+GitHub에 이미 존재하는 구조:
+
+```
+deck → table → player → score → rules
+```
+
+대부분 JS로 구현. 고스톱 룰 코드는 500~800줄 수준이라 **JS → Dart 변환** 포팅이 어렵지 않음.
+
+### 2. 실제 합치는 방법
+
+**Step 1: 카드 UI Clone**
+
+```bash
+git clone flutter-cardgame
+```
+
+```
+lib/
+  card/
+  deck/
+  game/
+  ui/
+```
+
+**Step 2: 게임 룰 추가**
+
+```
+lib/gostop/
+  gostop_rules.dart
+  gostop_score.dart
+  gostop_deck.dart
+```
+
+**Step 3: WebRTC 추가**
+
+```bash
+flutter pub add flutter_webrtc
+```
+
+연결 코드:
+
+```dart
+RTCDataChannel.send({
+  type: "play_card",
+  card: "3월"
+})
+```
+
+**Step 4: 게임 이벤트 구조**
+
+모든 게임 행동을 JSON으로 전송:
+
+```json
+{ "action": "play_card", "card": 5 }
+```
+
+```json
+{ "action": "go" }
+```
+
+### 3. 완성된 프로젝트 구조
+
+```
+gostop-p2p/
+ lib/
+  engine/
+   gostop_rules.dart
+   gostop_score.dart
+  ui/
+   card_widget.dart
+   table_widget.dart
+  network/
+   webrtc_service.dart
+  game/
+   game_controller.dart
+```
+
+### 4. 실제 개발 시간
+
+이 조합으로 이미 해결되는 비율:
+
+| 영역 | 해결 비율 |
+|------|-----------|
+| UI | 40% |
+| 네트워크 | 30% |
+| 룰 | 30% |
+
+**MVP: 2~3주** (기존 4~6주에서 단축)
+
+### 5. 추가하면 좋은 레포
+
+| 레포 | 용도 |
+|------|------|
+| flutter_card_animation | 카드 애니메이션 |
+| riverpod | 상태 관리 |
+| flame engine | 게임 엔진 |
+
+### 6. 개발 순서 (중요)
+
+카드게임 개발에서 **UI 먼저 만들면 실패**합니다.
+
+올바른 순서:
+
+```
+1. 룰 엔진
+2. 콘솔 시뮬레이션
+3. UI 연결
+4. P2P 연결
+```
+
+### 7. 최강 레포 조합 (최종 추천)
+
+```
+flutter-cardgame + flutter-webrtc-demo + gostop rules
+```
+
+이 조합이면 **코드 70% 이미 존재**.
+
+### 8. 프로 개발 구조
+
+실제 카드게임 회사가 사용하는 구조:
+
+```
+game-engine/   # 룰 엔진 (독립 모듈)
+game-ui/       # UI 레이어
+network/       # 통신 레이어
+ai/            # AI 플레이어
+```
+
+각 레이어를 독립 모듈로 분리해 테스트/재사용성 극대화.
