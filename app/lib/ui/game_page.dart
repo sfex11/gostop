@@ -44,6 +44,36 @@ class _GamePageState extends ConsumerState<GamePage> {
       });
     }
 
+    // --- 손패 월별 정렬 ---
+    final sortedHand = List<HwatooCard>.from(gs.playerHands[0])
+      ..sort((a, b) {
+        final monthCmp = a.month.index.compareTo(b.month.index);
+        if (monthCmp != 0) return monthCmp;
+        return a.type.index.compareTo(b.type.index);
+      });
+
+    // --- 바닥과 매칭되는 손패 카드 계산 ---
+    final tableMonths = <Month>{};
+    for (final c in gs.tableCards.cards) {
+      tableMonths.add(c.month);
+    }
+    final matchableCards = <HwatooCard>{};
+    if (uiState.isPlayerTurn && gs.phase == GamePhase.play) {
+      for (final c in sortedHand) {
+        if (tableMonths.contains(c.month)) {
+          matchableCards.add(c);
+        }
+      }
+    }
+
+    // --- 바닥 카드 월별 정렬 ---
+    final sortedTable = List<HwatooCard>.from(gs.tableCards.cards)
+      ..sort((a, b) {
+        final monthCmp = a.month.index.compareTo(b.month.index);
+        if (monthCmp != 0) return monthCmp;
+        return a.type.index.compareTo(b.type.index);
+      });
+
     return Scaffold(
       backgroundColor: const Color(0xFF1B3A1B),
       appBar: AppBar(
@@ -109,12 +139,12 @@ class _GamePageState extends ConsumerState<GamePage> {
             const SizedBox(height: 6),
 
             // === 바닥 카드 ===
-            _sectionLabel('바닥'),
+            _sectionLabel('바닥 (${sortedTable.length}장)'),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: _TableArea(
-                  tableCards: gs.tableCards.cards,
+                  tableCards: sortedTable,
                   highlightedCards: {
                     ...uiState.pendingMatchChoices,
                     ...uiState.pendingCaptureChoices,
@@ -202,14 +232,18 @@ class _GamePageState extends ConsumerState<GamePage> {
             const SizedBox(height: 4),
 
             // === 내 손패 ===
-            _sectionLabel('내 손패'),
+            _sectionLabel(
+              '내 손패 (${sortedHand.length}장)',
+              isActive: uiState.isPlayerTurn && gs.phase == GamePhase.play,
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: CardRow(
-                cards: gs.playerHands[0],
+                cards: sortedHand,
                 overlap: 0.5,
                 cardWidth: 52,
                 cardHeight: 72,
+                matchableCards: matchableCards,
                 onCardTap: uiState.isPlayerTurn &&
                         gs.phase == GamePhase.play
                     ? (card) => notifier.playCard(card)
@@ -261,18 +295,42 @@ class _GamePageState extends ConsumerState<GamePage> {
     );
   }
 
-  Widget _sectionLabel(String text) {
+  Widget _sectionLabel(String text, {bool isActive = false}) {
     return Padding(
       padding: const EdgeInsets.only(left: 12, bottom: 2),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Colors.white38,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: TextStyle(
+                fontSize: 10,
+                color: isActive ? Colors.greenAccent : Colors.white38,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: const Text(
+                  '내 턴',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.greenAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -299,7 +357,7 @@ class _GamePageState extends ConsumerState<GamePage> {
   }
 }
 
-/// 바닥 카드 영역 (Wrap 레이아웃)
+/// 바닥 카드 영역 — 월별 그룹 표시
 class _TableArea extends StatelessWidget {
   final List<HwatooCard> tableCards;
   final Set<HwatooCard> highlightedCards;
@@ -315,25 +373,80 @@ class _TableArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 월별 그룹핑 (이미 정렬된 상태)
+    final groups = <Month, List<HwatooCard>>{};
+    for (final card in tableCards) {
+      groups.putIfAbsent(card.month, () => []).add(card);
+    }
+
     return Center(
       child: SingleChildScrollView(
         child: Wrap(
-          spacing: 4,
-          runSpacing: 4,
+          spacing: 2,
+          runSpacing: 6,
           alignment: WrapAlignment.center,
           children: [
-            for (final card in tableCards)
-              HwatooCardWidget(
-                card: card,
-                width: 48,
-                height: 66,
-                highlighted: highlightedCards.contains(card),
-                onTap: selectableCards.contains(card) && onCardTap != null
-                    ? () => onCardTap!(card)
-                    : null,
+            for (final entry in groups.entries)
+              _MonthGroup(
+                cards: entry.value,
+                highlightedCards: highlightedCards,
+                selectableCards: selectableCards,
+                onCardTap: onCardTap,
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 같은 월 카드를 묶어 표시하는 위젯
+class _MonthGroup extends StatelessWidget {
+  final List<HwatooCard> cards;
+  final Set<HwatooCard> highlightedCards;
+  final Set<HwatooCard> selectableCards;
+  final ValueChanged<HwatooCard>? onCardTap;
+
+  const _MonthGroup({
+    required this.cards,
+    required this.highlightedCards,
+    required this.selectableCards,
+    this.onCardTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasMultiple = cards.length > 1;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.all(2),
+      decoration: hasMultiple
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.12),
+                width: 1,
+              ),
+              color: Colors.white.withValues(alpha: 0.04),
+            )
+          : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < cards.length; i++) ...[
+            if (i > 0) const SizedBox(width: 2),
+            HwatooCardWidget(
+              card: cards[i],
+              width: 48,
+              height: 66,
+              highlighted: highlightedCards.contains(cards[i]),
+              onTap: selectableCards.contains(cards[i]) && onCardTap != null
+                  ? () => onCardTap!(cards[i])
+                  : null,
+            ),
+          ],
+        ],
       ),
     );
   }

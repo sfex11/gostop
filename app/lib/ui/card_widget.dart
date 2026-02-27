@@ -10,6 +10,9 @@ class HwatooCardWidget extends StatelessWidget {
   final bool faceDown;
   final bool selected;
   final bool highlighted;
+
+  /// 바닥에 같은 월 카드가 있을 때 표시 (연두색 테두리)
+  final bool matchable;
   final VoidCallback? onTap;
   final double width;
   final double height;
@@ -20,6 +23,7 @@ class HwatooCardWidget extends StatelessWidget {
     this.faceDown = false,
     this.selected = false,
     this.highlighted = false,
+    this.matchable = false,
     this.onTap,
     this.width = 52,
     this.height = 72,
@@ -64,8 +68,10 @@ class HwatooCardWidget extends StatelessWidget {
                 ? const Color(0xFFFF9800)
                 : selected
                     ? const Color(0xFF2196F3)
-                    : Colors.transparent,
-            width: highlighted || selected ? 2.5 : 0,
+                    : matchable
+                        ? const Color(0xFF66BB6A)
+                        : Colors.transparent,
+            width: highlighted || selected ? 2.5 : matchable ? 2.0 : 0,
           ),
           boxShadow: [
             if (selected)
@@ -79,6 +85,12 @@ class HwatooCardWidget extends StatelessWidget {
                 color: Colors.orange.withValues(alpha: 0.4),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
+              )
+            else if (matchable)
+              BoxShadow(
+                color: Colors.green.withValues(alpha: 0.35),
+                blurRadius: 6,
+                offset: const Offset(0, 1),
               )
             else
               BoxShadow(
@@ -100,6 +112,9 @@ class CardRow extends StatelessWidget {
   final bool faceDown;
   final HwatooCard? selectedCard;
   final Set<HwatooCard> highlightedCards;
+
+  /// 바닥에 같은 월 카드가 있는 패 표시용
+  final Set<HwatooCard> matchableCards;
   final ValueChanged<HwatooCard>? onCardTap;
   final double overlap;
   final double cardWidth;
@@ -111,6 +126,7 @@ class CardRow extends StatelessWidget {
     this.faceDown = false,
     this.selectedCard,
     this.highlightedCards = const {},
+    this.matchableCards = const {},
     this.onCardTap,
     this.overlap = 0.6,
     this.cardWidth = 52,
@@ -143,6 +159,7 @@ class CardRow extends StatelessWidget {
                     faceDown: faceDown,
                     selected: cards[i] == selectedCard,
                     highlighted: highlightedCards.contains(cards[i]),
+                    matchable: matchableCards.contains(cards[i]),
                     onTap:
                         onCardTap != null ? () => onCardTap!(cards[i]) : null,
                     width: cardWidth,
