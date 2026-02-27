@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:engine/engine.dart';
 import 'package:flutter/material.dart';
 
+import 'card_image_service.dart';
 import 'card_painter.dart';
 
 /// 카드 뒤집기 애니메이션 위젯
@@ -78,18 +79,35 @@ class _FlipCardState extends State<FlipCard>
             ..setEntry(3, 2, 0.001) // 원근감
             ..rotateY(angle),
           child: isFront
-              ? HwatooCardFace(
-                  card: widget.card,
-                  width: widget.width,
-                  height: widget.height,
-                )
-              : HwatooCardBack(
-                  width: widget.width,
-                  height: widget.height,
-                ),
+              ? _buildFront()
+              : _buildBack(),
         );
       },
     );
+  }
+
+  Widget _buildFront() {
+    final svc = CardImageService.instance;
+    final imgPath = svc.imagePath(widget.card);
+    if (imgPath != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.asset(imgPath, width: widget.width, height: widget.height, fit: BoxFit.cover),
+      );
+    }
+    return HwatooCardFace(card: widget.card, width: widget.width, height: widget.height);
+  }
+
+  Widget _buildBack() {
+    final svc = CardImageService.instance;
+    final backPath = svc.backImagePath();
+    if (backPath != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.asset(backPath, width: widget.width, height: widget.height, fit: BoxFit.cover),
+      );
+    }
+    return HwatooCardBack(width: widget.width, height: widget.height);
   }
 }
 

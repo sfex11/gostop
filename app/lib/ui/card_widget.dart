@@ -1,9 +1,10 @@
 import 'package:engine/engine.dart';
 import 'package:flutter/material.dart';
 
+import 'card_image_service.dart';
 import 'card_painter.dart';
 
-/// 화투 카드 위젯 (Widget 기반 비주얼 렌더링 — 웹 호환)
+/// 화투 카드 위젯 — 이미지 에셋 또는 Widget 기반 렌더링
 class HwatooCardWidget extends StatelessWidget {
   final HwatooCard card;
   final bool faceDown;
@@ -26,6 +27,27 @@ class HwatooCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final svc = CardImageService.instance;
+
+    Widget cardChild;
+    if (faceDown) {
+      final backPath = svc.backImagePath();
+      cardChild = backPath != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.asset(backPath, width: width, height: height, fit: BoxFit.cover),
+            )
+          : HwatooCardBack(width: width, height: height);
+    } else {
+      final imgPath = svc.imagePath(card);
+      cardChild = imgPath != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.asset(imgPath, width: width, height: height, fit: BoxFit.cover),
+            )
+          : HwatooCardFace(card: card, width: width, height: height);
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -66,9 +88,7 @@ class HwatooCardWidget extends StatelessWidget {
               ),
           ],
         ),
-        child: faceDown
-            ? HwatooCardBack(width: width, height: height)
-            : HwatooCardFace(card: card, width: width, height: height),
+        child: cardChild,
       ),
     );
   }

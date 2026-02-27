@@ -274,7 +274,7 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
             const SizedBox(height: 60),
 
             Text(
-              'v0.4.0 — P2P Online',
+              'v0.5.0 — Assets & Polish',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withValues(alpha: 0.3),

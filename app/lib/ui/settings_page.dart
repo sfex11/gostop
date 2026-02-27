@@ -6,6 +6,7 @@ import '../game/game_notifier.dart';
 import '../game/settings_service.dart';
 import '../game/sound_service.dart';
 import '../game/theme_service.dart';
+import 'card_image_service.dart';
 
 /// 게임 규칙 설정 화면
 class SettingsPage extends ConsumerStatefulWidget {
@@ -284,6 +285,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   dense: true,
                 ),
                 _divider(),
+                // 효과음 스타일
+                _OptionTile<SoundStyle>(
+                  title: '효과음 스타일',
+                  value: SoundService.instance.style,
+                  items: const {
+                    SoundStyle.casual: '캐주얼',
+                    SoundStyle.traditional: '전통',
+                    SoundStyle.haptic: '진동만',
+                  },
+                  onChanged: (v) {
+                    SoundService.instance.setStyle(v);
+                    setState(() {});
+                  },
+                ),
+                _divider(),
+                // 카드 이미지 스타일
+                _OptionTile<CardImageStyle>(
+                  title: '카드 스타일',
+                  value: CardImageService.instance.style,
+                  items: const {
+                    CardImageStyle.classic: '클래식',
+                    CardImageStyle.simple: '심플',
+                    CardImageStyle.widget: '위젯',
+                  },
+                  onChanged: (v) {
+                    CardImageService.instance.style = v;
+                    setState(() {});
+                  },
+                ),
+                _divider(),
                 // 테마 토글
                 SwitchListTile(
                   title: const Text(
@@ -414,6 +445,61 @@ class _RuleToggle extends StatelessWidget {
       onChanged: (v) => onChanged(v),
       activeColor: Colors.green,
       dense: true,
+    );
+  }
+}
+
+/// 선택형 옵션 타일 (SegmentedButton)
+class _OptionTile<T> extends StatelessWidget {
+  final String title;
+  final T value;
+  final Map<T, String> items;
+  final ValueChanged<T> onChanged;
+
+  const _OptionTile({
+    required this.title,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          SegmentedButton<T>(
+            segments: items.entries
+                .map((e) => ButtonSegment<T>(value: e.key, label: Text(e.value)))
+                .toList(),
+            selected: {value},
+            onSelectionChanged: (s) => onChanged(s.first),
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.green.shade700;
+                }
+                return Colors.white.withValues(alpha: 0.08);
+              }),
+              foregroundColor: WidgetStateProperty.all(Colors.white),
+              textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 12)),
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
