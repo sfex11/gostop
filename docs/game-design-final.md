@@ -11,10 +11,16 @@
 |------|-----------|
 | 프로젝트명 | 고스톱 P2P |
 | 게임 종류 | 2인 맞고 (고스톱) |
-| 플랫폼 | Android / iOS (크로스플랫폼) |
+| 기본 룰셋 | **서울 표준룰** (모든 규칙 Config화) |
+| 플랫폼 | Android / iOS (크로스플랫폼) + **PWA (웹)** |
 | 네트워크 | P2P (서버리스 게임 세션) |
+| 매칭 방식 | **방 코드 공유 + 랜덤 매칭** 모두 제공 |
 | 개발 인원 | 1인 개발 기준 |
 | MVP 목표 기간 | 4~6주 |
+| 패키지명 | **com.gostop.p2p** |
+| 다국어 | **한/영 병기** |
+| 로그인 | **없음** (익명 플레이) |
+| 데이터 저장 | **로컬** (SharedPreferences) |
 
 ---
 
@@ -22,8 +28,9 @@
 
 | 레이어 | 확정 기술 | 선정 이유 |
 |--------|-----------|-----------|
-| 프레임워크 | **Flutter** | WebRTC 라이브러리 풍부, 2D 카드게임 최적, 크로스플랫폼 |
-| 언어 | **Dart** | Flutter 네이티브, JS 고스톱 로직 포팅 용이 (500~800줄 수준) |
+| 프레임워크 | **Flutter 3.27 Stable** | WebRTC 라이브러리 풍부, 2D 카드게임 최적, 크로스플랫폼 |
+| 언어 | **Dart 3.6** | Flutter 네이티브, JS 고스톱 로직 포팅 용이 (500~800줄 수준) |
+| Android 최소 | **API 23 (Android 6.0)** | 한국 사용자 99%+ 커버 |
 | P2P 통신 | **WebRTC DataChannel** | 모바일 지원 우수, NAT 해결, `flutter_webrtc` 플러그인 |
 | 상태 관리 | **Riverpod** | Flutter 생태계 표준, 게임 상태 관리에 적합 |
 | Signaling | **Socket.io** | 로비/방 매칭, ICE 후보 교환용 경량 서버 |
@@ -109,6 +116,36 @@ class GameState {
 | 고 / 스톱 | 점수 도달 시 계속 or 종료 선택 |
 | 점수 계산 | 광, 띠, 피, 동물 조합별 점수 |
 | 족보 | 광박, 멍따, 고박, 비박, 피박 등 배율 |
+
+### 4.4 룰 Config 구조 (확정)
+
+> **원칙: 서울 표준룰을 기본값으로 하되, 모든 규칙 요소를 Config로 설정 가능하게 설계.**
+> App Factory에서 Config만 바꿔 다양한 룰 변형 앱을 자동 생성한다.
+
+```yaml
+# 기본값: 서울 표준룰
+rules:
+  # 고/스톱 기준
+  go_stop_threshold: 3      # 3점부터 고/스톱 선택 가능 (7점제도 가능)
+  go_limit: null             # 고 횟수 제한 없음 (null = 무제한)
+
+  # 특수 규칙 (모두 on/off 가능)
+  ssangpi: true              # 쌍피: 같은 월 피 2장 한번에 → 2피
+  bomb: true                 # 폭탄(뻑): 바닥 3장 + 손패 1장
+  shake: true                # 흔들기(뻑): 손패 같은 월 3장 → 배율 2배
+  ttadak: true               # 따닥: 내 카드 + 뒤집은 카드 같은 월 → 연속 획득
+
+  # 배수(벌칙) 규칙 (모두 on/off 가능)
+  gwangbak: true             # 광박: 광 0장이면 패배 시 2배
+  pibak: true                # 피박: 상대보다 피 적으면 2배
+  gobak: true                # 고박: 상대 '고' 상태에서 내가 이기면 2배
+  meongdda: true             # 멍따: 동물 7장 이상이면 배율 추가
+  bibak: true                # 비박: 비 맞으면 2배
+
+  # 게임 속도
+  speed_multiplier: 1.0      # 1.0=일반, 1.5=스피드, 2.0=번개
+  turn_timeout_sec: 30       # 턴 제한시간 (초)
+```
 
 ---
 
@@ -247,12 +284,18 @@ GamePage
 
 | Phase | 내용 | 기간 | 산출물 |
 |-------|------|------|--------|
-| **Phase 1** | 오프라인 맞고 | 2주 | 룰 엔진 + 기본 UI + 로컬 2인 플레이 |
-| **Phase 2** | AI 대전 | 1주 | AI 플레이어 (기본 전략) |
+| **Phase 1** | 룰 엔진 + **AI 대전** | 2주 | 룰 엔진(Config 기반) + 기본 AI + UI + 단위테스트 |
+| **Phase 2** | AI 강화 + 마감 | 1주 | **룰 기반 휴리스틱** AI (난이도별) + 밸런스 조정 |
 | **Phase 3** | P2P 온라인 | 2주 | WebRTC 연결 + 이벤트 동기화 + 재연결 |
-| **Phase 4** | 매칭 서버 + 마감 | 1주 | Signaling 서버 + 로비 UI + 스토어 배포 |
+| **Phase 4** | 매칭 서버 + 배포 | 1주 | Signaling 서버 + 로비(방코드+랜덤) + 스토어 배포 |
 
 **총 MVP: 6주**
+
+> **Phase 1 확정 사항:**
+> - 상대방: **기본 AI** (랜덤 가중치 수준, Phase 2에서 강화)
+> - 카드 에셋: **오픈소스 차용** (라이선스 확인 필수)
+> - 테스트: **룰 엔진 단위테스트** (덱/매칭/점수 100% 커버)
+> - 효과음/애니메이션: **MVP 후 추가** (Phase 1~2는 기능에 집중)
 
 ### 8.3 오픈소스 활용 (레포 조합 전략)
 
@@ -417,13 +460,16 @@ final iceServers = [
 
 ---
 
-## 12. 수익 모델
+## 12. 수익 모델 (확정)
 
 | 수익원 | 방식 | 예상 |
 |--------|------|------|
-| **광고** | AdMob (배너 + 리워드 영상) | 기본 수익원 |
+| **광고** | AdMob: **게임 종료 후 전면광고 + 하단 배너** | 기본 수익원 |
 | **스킨** | 카드 디자인 판매 (인앱 구매) | 프리미엄 수익 |
 | **프리미엄** | 광고 제거 유료 버전 | 일회성 구매 |
+
+> **광고 타이밍**: 게임 중에는 광고 없음. 게임 종료 화면에서 전면(interstitial) 표시.
+> 하단 배너는 로비/대기 화면에서만 표시. 플레이 중 방해 최소화.
 
 ---
 
@@ -699,33 +745,65 @@ Phase D (운영):   Analytics Agent가 자동으로 다음 조합 결정
 
 ---
 
-## 14. 확정 사양 요약
+## 14. 확정 사양 요약 (최종)
 
 ```
-게임:          2인 맞고 (고스톱)
-프레임워크:     Flutter (Dart)
-네트워크:       WebRTC DataChannel (P2P)
-동기화:         Event Sync + State Hash 검증
-네트워크 모델:   클라이언트-호스트
-Signaling:     Socket.io (Node.js)
-NAT 우회:      coturn (STUN/TURN)
-서버 호스팅:    Oracle Cloud Free Tier (ARM VM)
-상태 관리:      Riverpod
-AI:            기본 전략 AI (Phase 2)
-광고:          AdMob
-Analytics:     Firebase
-CI/CD:         GitHub Actions
-배포:          Google Play + PWA (Firebase Hosting)
-MVP 기간:      6주 (4 Phase)
-서버 비용:      월 $0 (Oracle Cloud Always Free)
+[프로젝트]
+  게임:          2인 맞고 (고스톱)
+  패키지명:       com.gostop.p2p
+  기본 룰셋:      서울 표준룰 (모든 규칙 Config화)
+  다국어:         한/영 병기
 
-App Factory:
-  변형 축:      테마 × 룰 × AI (전부 조합, 최대 192개)
-  자동화:       완전 자동 (LLM → 코드 → 빌드 → 배포)
-  배포:         Google Play + PWA
+[기술 스택]
+  프레임워크:     Flutter 3.27 Stable (Dart 3.6)
+  Android 최소:  API 23 (Android 6.0)
+  네트워크:       WebRTC DataChannel (P2P)
+  동기화:         Event Sync + State Hash 검증
+  네트워크 모델:   클라이언트-호스트
+  Signaling:     Socket.io (Node.js)
+  NAT 우회:      coturn (STUN/TURN)
+  서버 호스팅:    Oracle Cloud Free Tier (ARM VM)
+  상태 관리:      Riverpod
+
+[게임 규칙 Config]
+  고/스톱 기준:   Config (기본 3점)
+  특수 규칙:      쌍피/폭탄/흔들기/따닥 (모두 Config on/off)
+  배수 규칙:      광박/피박/고박/멍따/비박 (모두 Config on/off)
+
+[AI]
+  Phase 1:       랜덤 가중치 (기본)
+  Phase 2:       룰 기반 휴리스틱 (난이도별)
+
+[사용자 경험]
+  로그인:         없음 (익명 플레이)
+  매칭 방식:      방 코드 공유 + 랜덤 매칭 (둘 다)
+  데이터 저장:     로컬 (SharedPreferences)
+  효과음/애니:     MVP 후 추가
+  카드 에셋:       오픈소스 차용
+
+[수익화]
+  광고:          AdMob (게임 종료 후 전면 + 하단 배너)
+  스킨:          카드 디자인 인앱구매
+  프리미엄:       광고 제거 유료
+
+[인프라]
+  Analytics:     Firebase
+  CI/CD:         GitHub Actions
+  배포:          Google Play + PWA (Firebase Hosting)
+  서버 비용:      월 $0 (Oracle Cloud Always Free)
+  MVP 기간:      6주 (4 Phase)
+  테스트:         룰 엔진 단위테스트
+
+[App Factory]
+  변형 축:        테마 × 룰 × AI (전부 조합, 최대 192개)
+  자동화:         완전 자동 (LLM → 코드 → 빌드 → 배포)
+  배포:           Google Play + PWA
+  생산량:         1개/일
+  Play 정책 대응:  차별화 극대화 (이름/아이콘/테마 차별)
+  리포 구조:       분리 (gostop-p2p + gostop-app-factory)
   Daily 파이프라인: GitHub Actions cron (매일 00:00)
-  에이전트:      Idea → Asset → Code → Build → Publish → Analytics
-  운영 비용:     ~$15/월
+  에이전트:        Idea → Asset → Code → Build → Publish → Analytics
+  운영 비용:       ~$15/월
 ```
 
 ---
