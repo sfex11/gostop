@@ -4,7 +4,7 @@ version: 0.1.0
 repository: https://github.com/sfex11/gostop
 
 environment:
-  sdk: ^3.11.1
+  sdk: ^3.11.0
 
 # Add regular dependencies here.
 dependencies:
