@@ -77,15 +77,16 @@ class _FlipCardState extends State<FlipCard>
           transform: Matrix4.identity()
             ..setEntry(3, 2, 0.001) // 원근감
             ..rotateY(angle),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: CustomPaint(
-              size: Size(widget.width, widget.height),
-              painter: isFront
-                  ? HwatooCardPainter(card: widget.card)
-                  : CardBackPainter(),
-            ),
-          ),
+          child: isFront
+              ? HwatooCardFace(
+                  card: widget.card,
+                  width: widget.width,
+                  height: widget.height,
+                )
+              : HwatooCardBack(
+                  width: widget.width,
+                  height: widget.height,
+                ),
         );
       },
     );

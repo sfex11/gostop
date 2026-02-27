@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'card_painter.dart';
 
-/// 화투 카드 위젯 (CustomPainter 기반 비주얼 렌더링)
+/// 화투 카드 위젯 (Widget 기반 비주얼 렌더링 — 웹 호환)
 class HwatooCardWidget extends StatelessWidget {
   final HwatooCard card;
   final bool faceDown;
@@ -66,14 +66,9 @@ class HwatooCardWidget extends StatelessWidget {
               ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: CustomPaint(
-            size: Size(width, height),
-            painter:
-                faceDown ? CardBackPainter() : HwatooCardPainter(card: card),
-          ),
-        ),
+        child: faceDown
+            ? HwatooCardBack(width: width, height: height)
+            : HwatooCardFace(card: card, width: width, height: height),
       ),
     );
   }
@@ -108,30 +103,34 @@ class CardRow extends StatelessWidget {
       return SizedBox(height: cardHeight);
     }
 
+    final effectiveWidth =
+        cardWidth + (cards.length - 1) * cardWidth * (1 - overlap);
+
     return SizedBox(
       height: cardHeight + 8,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < cards.length; i++)
-              Padding(
-                padding: EdgeInsets.only(
-                  left: i == 0 ? 0 : cardWidth * (1 - overlap),
+        child: SizedBox(
+          width: effectiveWidth,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              for (var i = 0; i < cards.length; i++)
+                Positioned(
+                  left: i * cardWidth * (1 - overlap),
+                  child: HwatooCardWidget(
+                    card: cards[i],
+                    faceDown: faceDown,
+                    selected: cards[i] == selectedCard,
+                    highlighted: highlightedCards.contains(cards[i]),
+                    onTap:
+                        onCardTap != null ? () => onCardTap!(cards[i]) : null,
+                    width: cardWidth,
+                    height: cardHeight,
+                  ),
                 ),
-                child: HwatooCardWidget(
-                  card: cards[i],
-                  faceDown: faceDown,
-                  selected: cards[i] == selectedCard,
-                  highlighted: highlightedCards.contains(cards[i]),
-                  onTap:
-                      onCardTap != null ? () => onCardTap!(cards[i]) : null,
-                  width: cardWidth,
-                  height: cardHeight,
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
