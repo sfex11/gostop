@@ -427,100 +427,305 @@ final iceServers = [
 
 ---
 
-## 13. 스케일업: App Factory 전략
+## 13. 스케일업: App Factory — 완전 자동 Daily 워크플로 (확정)
 
-MVP 성공 후 **템플릿 기반 파생앱 대량 생산** 전략.
+MVP 성공 후 **템플릿 기반 파생앱 대량 생산**.
+변형 축 **전부 조합** (테마 × 룰 × AI), **완전 자동**, 배포는 **Google Play + 웹(PWA)**.
 
-### 13.1 핵심 개념
+### 13.1 확정 사양
+
+| 항목 | 확정 |
+|------|------|
+| 변형 축 | 테마 × 룰 × AI **전부 조합** |
+| 자동화 수준 | **완전 자동** (사람은 모니터링만) |
+| 배포 타겟 | **Google Play (APK/AAB) + 웹 (PWA)** |
+| 자동화 도구 | GitHub Actions + LLM API |
+
+### 13.2 변형 매트릭스
+
+3축 전체 조합으로 **최대 192개 앱** 생산 가능:
+
+| 축 | 변형 | 수 |
+|----|------|-----|
+| **UI 테마** | 클래식, 애니, 레트로, 미니멀, 네온, 전통, 수묵화, 팝아트 | 8 |
+| **룰 변형** | 정통, 빠른게임, 3점제, 7점제, 쌍피없음, 번개 | 6 |
+| **AI 난이도** | easy, normal, hard, expert | 4 |
 
 ```
-90% 템플릿 고정 + 10% 변경 (스킨/룰/AI) = 새로운 앱
+8 테마 × 6 룰 × 4 AI = 192 조합
 ```
 
-### 13.2 변형 축
+각 조합은 Config 1개 = 앱 1개.
 
-| 변형 요소 | 예시 |
-|-----------|------|
-| UI 테마 | 클래식, 애니, 레트로, 미니멀 |
-| AI 난이도 | easy, normal, hard, expert |
-| 룰 변형 | 빠른게임, 정통, 3점제, 7점제 |
-| 게임 속도 | 일반, 스피드, 번개 |
-
-### 13.3 자동화 파이프라인
+### 13.3 하루 자동 생성 파이프라인
 
 ```
-Scheduler (Daily)
-  ↓
-LLM: Config 생성 (테마/룰/난이도 조합)
-  ↓
-Code Generator: 템플릿 + Config 적용
-  ↓
-GitHub Actions: Flutter build (APK/AAB)
-  ↓
-Google Play API: 자동 업로드
-  ↓
-Firebase: Analytics 수집
-  ↓
-LLM: 성과 분석 → 다음 Config 생성
+┌─────────────────────────────────────────────────────────────┐
+│  00:00  Scheduler (GitHub Actions cron)                     │
+│    ↓                                                        │
+│  00:01  Idea Agent (LLM)                                    │
+│         - 어제 Analytics 데이터 분석                          │
+│         - 미생성 조합 중 다음 Config 선택                      │
+│         - 앱 이름/설명/키워드 생성                             │
+│    ↓                                                        │
+│  00:05  Asset Agent (이미지 생성 AI)                          │
+│         - 아이콘, 카드 디자인, 스크린샷 생성                    │
+│    ↓                                                        │
+│  00:15  Code Generator                                      │
+│         - 템플릿 복사 + Config 적용                           │
+│         - 테마 CSS/위젯 주입                                  │
+│         - 룰 파라미터 설정                                    │
+│         - AI 레벨 설정                                       │
+│    ↓                                                        │
+│  00:20  Build Agent (GitHub Actions)                        │
+│         - flutter build appbundle (Google Play)             │
+│         - flutter build web (PWA)                           │
+│         - 자동 테스트 실행                                    │
+│    ↓                                                        │
+│  00:40  Publish Agent                                       │
+│         - Google Play: AAB 업로드 (Developer API)            │
+│         - PWA: Firebase Hosting / GitHub Pages 배포          │
+│         - 스토어 설명 + 스크린샷 자동 등록                      │
+│    ↓                                                        │
+│  01:00  완료 → Slack/Discord 알림                            │
+│                                                             │
+│  매일 23:00  Analytics Agent                                │
+│         - Firebase에서 DAU/retention/수익 수집                │
+│         - LLM 분석 → 내일 생성할 조합 우선순위 결정             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 13.4 App Factory 리포 구조
+**소요 시간: 약 1시간/앱 (사람 개입 0)**
+
+### 13.4 Config 예시
+
+```yaml
+# config/gostop_anime_fast_easy.yaml
+app_id: com.gostop.anime.fast.easy
+app_name: "고스톱 애니 스피드"
+version: 1.0.0
+
+theme:
+  name: anime
+  card_style: cute_rounded
+  background: pastel_gradient
+  font: "NanumBarunGothic"
+
+rules:
+  variant: fast        # 빠른게임 (3점제)
+  go_limit: 3
+  ssangpi: true
+  bomb: true
+  speed_multiplier: 1.5
+
+ai:
+  level: easy           # 초보용
+  strategy: random_weighted
+  think_time_ms: 500
+
+monetization:
+  ads: true
+  ad_provider: admob
+  rewarded_video: true
+  iap_skins: false
+
+deploy:
+  google_play: true
+  pwa: true
+  pwa_host: firebase    # Firebase Hosting
+```
+
+### 13.5 멀티 에이전트 구조 (확정)
+
+```
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│  Idea    │──▶│  Asset   │──▶│  Code    │──▶│  Build   │──▶│ Publish  │──▶│Analytics │
+│  Agent   │   │  Agent   │   │  Agent   │   │  Agent   │   │  Agent   │   │  Agent   │
+└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+ LLM API        이미지 AI       Template       GitHub         Play API      Firebase
+ (Anthropic)    (Stability)     + Patch        Actions        + Firebase    + LLM
+```
+
+| 에이전트 | 입력 | 출력 | 도구 |
+|----------|------|------|------|
+| Idea Agent | Analytics 데이터 | Config YAML | Anthropic API |
+| Asset Agent | Config (테마) | 아이콘, 카드 이미지, 스크린샷 | Stability AI / OpenAI 이미지 |
+| Code Agent | Config + Template | 완성된 Flutter 프로젝트 | Python 스크립트 |
+| Build Agent | Flutter 프로젝트 | APK/AAB + PWA | GitHub Actions |
+| Publish Agent | 빌드 산출물 | 스토어 등록 완료 | Google Play API + Firebase Hosting |
+| Analytics Agent | Firebase 데이터 | 성과 리포트 + 다음 우선순위 | Firebase + Anthropic API |
+
+### 13.6 듀얼 배포: Google Play + PWA (확정)
+
+| 플랫폼 | 빌드 | 배포 | 비용 |
+|--------|------|------|------|
+| **Google Play** | `flutter build appbundle` | Google Play Developer API | $25 일회성 (개발자 등록) |
+| **PWA (웹)** | `flutter build web` | Firebase Hosting / GitHub Pages | $0 |
+
+PWA 장점:
+- 설치 없이 브라우저에서 즉시 플레이
+- 링크 공유만으로 사용자 유입
+- Apple 심사 없이 iOS도 커버 (홈 화면 추가)
+
+### 13.7 App Factory 리포 구조 (확정)
 
 ```
 gostop-app-factory/
- template/           # 공통 코드 (90%)
-  engine/
-  ai/
-  ui/
-  network/
- variants/           # 변형 요소
+ template/                    # 공통 코드 (90%)
+  lib/
+   engine/                    # 룰 엔진
+   ai/                        # AI 플레이어
+   ui/                        # 카드 UI
+   network/                   # WebRTC P2P
+  web/                        # PWA 셸
+  assets/                     # 기본 에셋
+ variants/                    # 변형 리소스
   themes/
+   anime/ classic/ retro/ minimal/ neon/ traditional/ ink/ popart/
   rules/
+   standard.yaml fast.yaml 3point.yaml 7point.yaml nossangpi.yaml lightning.yaml
   ai_levels/
- generator/          # 앱 생성기
-  generate_app.py
- publisher/          # 자동 배포
-  playstore_upload.py
- apps/               # 생성된 앱들
+   easy.yaml normal.yaml hard.yaml expert.yaml
+ configs/                     # 생성된 Config들
+  gostop_anime_fast_easy.yaml
+  gostop_retro_standard_hard.yaml
+  ...
+ generator/                   # 앱 생성기
+  generate_app.py             # Config → Flutter 프로젝트
+  idea_agent.py               # LLM 기반 Config 생성
+  asset_agent.py              # 이미지 AI 생성
+ publisher/                   # 배포 자동화
+  playstore_upload.py         # Google Play API
+  pwa_deploy.sh               # Firebase Hosting 배포
+ analytics/                   # 성과 분석
+  collect.py                  # Firebase 데이터 수집
+  analyze.py                  # LLM 분석 + 다음 우선순위
+ .github/workflows/
+  daily_generate.yml          # 매일 자동 생성 cron
+  build_and_deploy.yml        # 빌드 + 배포
+ apps/                        # 생성된 앱들 (output)
 ```
 
-### 13.5 스케일 전략
+### 13.8 GitHub Actions: Daily cron 워크플로
+
+```yaml
+# .github/workflows/daily_generate.yml
+name: Daily App Generate
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 00:00 UTC
+  workflow_dispatch:       # 수동 실행도 가능
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Idea Agent - Generate Config
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python generator/idea_agent.py
+
+      - name: Asset Agent - Generate Images
+        env:
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
+        run: python generator/asset_agent.py
+
+      - name: Code Agent - Generate App
+        run: python generator/generate_app.py
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+
+      - name: Build AAB (Google Play)
+        run: |
+          cd apps/latest/
+          flutter pub get
+          flutter build appbundle
+
+      - name: Build Web (PWA)
+        run: |
+          cd apps/latest/
+          flutter build web
+
+      - name: Publish to Google Play
+        env:
+          PLAY_SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT }}
+        run: python publisher/playstore_upload.py
+
+      - name: Deploy PWA to Firebase
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: bash publisher/pwa_deploy.sh
+
+      - name: Notify
+        run: |
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK }} \
+            -H 'Content-Type: application/json' \
+            -d '{"content": "New app deployed!"}'
+```
+
+### 13.9 스케일 전략 (확정)
 
 ```
-Phase A: 20개 생성 → 데이터 수집
-Phase B: 상위 5개 선별 → 성공 패턴 분석
-Phase C: 성공 패턴 기반 80개 변형 집중 생산
+Phase A (1~2주):  20개 생성 → DAU/retention 데이터 수집
+Phase B (3주):    상위 5개 선별 → 성공 패턴 분석 (어떤 테마×룰×AI 조합?)
+Phase C (4주~):   성공 패턴 기반 80개 변형 집중 생산
+Phase D (운영):   Analytics Agent가 자동으로 다음 조합 결정
 ```
 
-### 13.6 멀티 에이전트 구조
+### 13.10 예상 수익
 
 ```
-Idea Agent → Design Agent → Code Agent → Build Agent → Publish Agent → Analytics Agent
+100 앱 × $30/month 평균 = $3,000/month
+상위 10% 앱이 80% 수익 담당 → 히트 앱 집중 변형
 ```
 
-각 에이전트는 LLM(Anthropic/OpenAI) 기반, GitHub API 연동.
+### 13.11 비용 요약 (App Factory 운영)
+
+| 항목 | 비용 |
+|------|------|
+| 서버 (Oracle Cloud) | $0 |
+| LLM API (Anthropic) | ~$10/월 (Config 생성) |
+| 이미지 AI | ~$5/월 (아이콘/카드) |
+| Google Play 등록 | $25 일회성 |
+| Firebase Hosting | $0 (무료 티어) |
+| GitHub Actions | $0 (무료 티어, 2000분/월) |
+| **총 운영 비용** | **~$15/월** |
 
 ---
 
 ## 14. 확정 사양 요약
 
 ```
-게임:        2인 맞고 (고스톱)
-프레임워크:   Flutter (Dart)
-네트워크:     WebRTC DataChannel (P2P)
-동기화:       Event Sync + State Hash 검증
-네트워크 모델: 클라이언트-호스트
-Signaling:   Socket.io (Node.js)
-NAT 우회:    coturn (STUN/TURN)
-서버 호스팅:  Oracle Cloud Free Tier (ARM VM)
-상태 관리:    Riverpod
-AI:          기본 전략 AI (Phase 2)
-광고:        AdMob
-Analytics:   Firebase
-CI/CD:       GitHub Actions
-배포:        Google Play (자동 퍼블리싱)
-MVP 기간:    6주 (4 Phase)
-서버 비용:    월 $0 (Oracle Cloud Always Free)
+게임:          2인 맞고 (고스톱)
+프레임워크:     Flutter (Dart)
+네트워크:       WebRTC DataChannel (P2P)
+동기화:         Event Sync + State Hash 검증
+네트워크 모델:   클라이언트-호스트
+Signaling:     Socket.io (Node.js)
+NAT 우회:      coturn (STUN/TURN)
+서버 호스팅:    Oracle Cloud Free Tier (ARM VM)
+상태 관리:      Riverpod
+AI:            기본 전략 AI (Phase 2)
+광고:          AdMob
+Analytics:     Firebase
+CI/CD:         GitHub Actions
+배포:          Google Play + PWA (Firebase Hosting)
+MVP 기간:      6주 (4 Phase)
+서버 비용:      월 $0 (Oracle Cloud Always Free)
+
+App Factory:
+  변형 축:      테마 × 룰 × AI (전부 조합, 최대 192개)
+  자동화:       완전 자동 (LLM → 코드 → 빌드 → 배포)
+  배포:         Google Play + PWA
+  Daily 파이프라인: GitHub Actions cron (매일 00:00)
+  에이전트:      Idea → Asset → Code → Build → Publish → Analytics
+  운영 비용:     ~$15/월
 ```
 
 ---
