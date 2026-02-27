@@ -273,22 +273,89 @@ GamePage
 
 ## 9. 서버 인프라
 
-### 9.1 필요 서버 (최소 구성)
+### 9.1 비용 목표: 월 $0
 
-| 서버 | 역할 | 기술 | 비용 |
-|------|------|------|------|
-| Signaling | 방 매칭, ICE/SDP 교환 | Socket.io (Node.js) | 무료 (Render/Railway) |
-| STUN | NAT 타입 확인 | Google STUN (공개) | 무료 |
-| TURN | 방화벽 뚫기 백업 | coturn (자체 호스팅) | $5~10/월 |
-| Analytics | 사용자 데이터 | Firebase | 무료 |
+Oracle Cloud Free Tier를 활용해 **모든 서버를 무료**로 운영한다.
 
-**총 서버 비용: 월 $5~15**
+### 9.2 Oracle Cloud Free Tier 구성
 
-### 9.2 Signaling 서버 코드
+| 리소스 | Free Tier 사양 | 용도 |
+|--------|---------------|------|
+| **VM (ARM)** | 4 OCPU / 24GB RAM (항상 무료) | Signaling + coturn 통합 |
+| **VM (AMD)** | 1/8 OCPU / 1GB RAM × 2대 (항상 무료) | 백업/모니터링 |
+| **부트 볼륨** | 200GB 총 (항상 무료) | OS + 로그 |
+| **네트워크** | 월 10TB 아웃바운드 (항상 무료) | P2P 시그널링 + TURN relay |
+| **로드밸런서** | 1대 (항상 무료) | HTTPS 종단 |
+
+> Oracle Cloud "Always Free" 티어는 기간 제한 없이 영구 무료.
+> 크레딧 소진/30일 트라이얼 종료와 무관하게 유지됨.
+
+### 9.3 서버 배치 (단일 VM 통합)
+
+```
+Oracle Cloud ARM VM (4 OCPU / 24GB RAM)
+ ├ Node.js        → Signaling 서버 (Socket.io, 포트 3000)
+ ├ coturn          → STUN + TURN 서버 (포트 3478/5349)
+ └ Nginx           → 리버스 프록시 + HTTPS (Let's Encrypt)
+```
+
+2인 맞고는 트래픽이 극소량이므로 **단일 VM에 전부 올려도 충분**.
+ARM 4 OCPU / 24GB RAM은 동시 수천 세션도 처리 가능.
+
+### 9.4 전체 서버 비용표
+
+| 서버 | 역할 | 기술 | 호스팅 | 비용 |
+|------|------|------|--------|------|
+| Signaling | 방 매칭, ICE/SDP 교환 | Socket.io (Node.js) | Oracle Cloud VM | **$0** |
+| STUN | NAT 타입 확인 | coturn | Oracle Cloud VM | **$0** |
+| TURN | 방화벽 뚫기 백업 | coturn | Oracle Cloud VM | **$0** |
+| Analytics | 사용자 데이터 | Firebase | Google | **$0** |
+| HTTPS 인증서 | TLS 암호화 | Let's Encrypt | 자동 갱신 | **$0** |
+| 도메인 | (선택) 커스텀 도메인 | Freenom 등 | 무료 도메인 가능 | **$0** |
+
+**총 서버 비용: 월 $0**
+
+### 9.5 Oracle Cloud 초기 세팅
+
+```bash
+# 1. VM 생성 후 SSH 접속
+ssh -i key.pem ubuntu@<VM_PUBLIC_IP>
+
+# 2. coturn 설치
+sudo apt update && sudo apt install -y coturn
+sudo systemctl enable coturn
+
+# 3. coturn 설정 (/etc/turnserver.conf)
+listening-port=3478
+tls-listening-port=5349
+realm=gostop.example.com
+server-name=gostop.example.com
+fingerprint
+lt-cred-mech
+user=gostop:password
+total-quota=100
+stale-nonce=600
+
+# 4. Node.js + Signaling 서버
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+npm init -y && npm install socket.io express
+
+# 5. Nginx + Let's Encrypt
+sudo apt install -y nginx certbot python3-certbot-nginx
+sudo certbot --nginx -d gostop.example.com
+
+# 6. 방화벽 (Oracle Cloud Security List)
+# 포트 개방: 80, 443, 3000, 3478, 5349, 49152-65535(UDP)
+```
+
+### 9.6 Signaling 서버 코드
 
 ```js
 // signaling.js (Node.js + Socket.io)
-const io = require('socket.io')(server);
+const io = require('socket.io')(server, {
+  cors: { origin: '*' }
+});
 
 io.on('connection', socket => {
   socket.on('create-room', (roomId) => {
@@ -305,6 +372,24 @@ io.on('connection', socket => {
     socket.to(data.roomId).emit('signal', data);
   });
 });
+```
+
+### 9.7 Flutter 클라이언트 ICE 설정
+
+```dart
+final iceServers = [
+  // Google 공개 STUN (백업)
+  {'urls': 'stun:stun.l.google.com:19302'},
+  // Oracle Cloud VM의 coturn
+  {
+    'urls': 'stun:<VM_PUBLIC_IP>:3478',
+  },
+  {
+    'urls': 'turn:<VM_PUBLIC_IP>:3478',
+    'username': 'gostop',
+    'credential': 'password',
+  },
+];
 ```
 
 ---
@@ -427,6 +512,7 @@ Idea Agent → Design Agent → Code Agent → Build Agent → Publish Agent →
 네트워크 모델: 클라이언트-호스트
 Signaling:   Socket.io (Node.js)
 NAT 우회:    coturn (STUN/TURN)
+서버 호스팅:  Oracle Cloud Free Tier (ARM VM)
 상태 관리:    Riverpod
 AI:          기본 전략 AI (Phase 2)
 광고:        AdMob
@@ -434,7 +520,7 @@ Analytics:   Firebase
 CI/CD:       GitHub Actions
 배포:        Google Play (자동 퍼블리싱)
 MVP 기간:    6주 (4 Phase)
-서버 비용:    월 $5~15
+서버 비용:    월 $0 (Oracle Cloud Always Free)
 ```
 
 ---
