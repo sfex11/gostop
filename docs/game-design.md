@@ -759,3 +759,266 @@ GitHub + OpenAI 기반으로 구축 가능.
 ```
 
 AI 앱 공장(App Factory) 구조는 현재 AI 시대에서 가장 강력한 1인 개발 전략 중 하나.
+
+## 고스톱 앱 100개 자동 생성 시스템 아키텍처
+
+LLM + GitHub + 자동 퍼블리싱으로 "고스톱 앱 100개 자동 생성"하는 App Factory 아키텍처.
+핵심: **템플릿 기반 + config 생성 + 자동 빌드 + 자동 스토어 업로드**.
+
+### 1. 전체 시스템 아키텍처
+
+```
+Scheduler (Daily / CI)
+        │
+        ▼
+Idea Agent (LLM)
+        │
+        ▼
+Config Generator
+        │
+        ▼
+Code Generator (template + patch)
+        │
+        ▼
+Git Repository Creator
+        │
+        ▼
+Build Pipeline (CI/CD)
+        │
+        ▼
+Store Publisher
+        │
+        ▼
+Analytics Collector
+```
+
+| 컴포넌트 | 설명 |
+|----------|------|
+| Idea Agent | 오늘 만들 앱 컨셉 생성 |
+| Config Generator | 앱 설정 생성 |
+| Code Generator | 템플릿 기반 코드 생성 |
+| Build Pipeline | Flutter APK/AAB 빌드 |
+| Publisher | Google Play 업로드 |
+
+### 2. 핵심 개념: Template + Variant
+
+앱을 새로 만드는 게 아니라 **template + variant**:
+
+```
+template: 고스톱 기본 게임
+variant:  UI 테마 / AI 난이도 / 룰 변형 / 속도
+```
+
+### 3. Repository 구조
+
+```
+gostop-app-factory/
+ template/
+  engine/        # 고스톱 룰
+  ai/            # AI 플레이어
+  ui/            # 카드 UI
+  network/       # P2P (optional)
+ variants/
+  themes/
+  rules/
+  ai_levels/
+ generator/
+  generate_app.py
+ apps/
+  generated_apps/
+ publisher/
+  playstore_upload.py
+```
+
+### 4. Config 기반 생성
+
+AI는 코드를 직접 쓰지 않고 **config만 생성**:
+
+```yaml
+app_name: gostop_fast_anime
+theme: anime
+ai_level: easy
+rule_variant: fast
+ads: admob
+icon_style: cartoon
+```
+
+### 5. 코드 생성 방식
+
+```python
+generate_app(config)
+```
+
+동작 순서:
+1. Template 복사
+2. Config 적용
+3. Assets 생성
+4. Metadata 생성
+
+### 6. 생성된 앱 구조
+
+```
+apps/
+ gostop_fast_anime/
+  lib/
+  assets/
+  pubspec.yaml
+  config.yaml
+```
+
+### 7. LLM 역할
+
+LLM은 **앱 아이디어 + config 생성**:
+
+```json
+{
+  "app_name": "GOSTOP ANIME SPEED",
+  "theme": "anime",
+  "ai": "easy",
+  "speed": "fast"
+}
+```
+
+LLM 후보: OpenAI 모델, Anthropic 모델.
+
+### 8. GitHub 자동 리포 생성
+
+GitHub API 사용:
+
+```python
+create_repo(app_name)
+push_code()
+```
+
+### 9. CI/CD 빌드 시스템
+
+GitHub Actions 파이프라인:
+
+```yaml
+name: build
+steps:
+  - checkout
+  - setup flutter
+  - flutter pub get
+  - flutter build appbundle
+```
+
+### 10. 자동 퍼블리싱
+
+Google Play Developer API 사용:
+
+```python
+upload_aab()
+```
+
+필요: Service Account JSON Key.
+
+### 11. 앱 아이콘 / 이미지 자동 생성
+
+이미지 생성 AI 활용 (OpenAI 이미지 모델, Stability AI):
+
+```
+icon → card design → screenshot
+```
+
+### 12. 앱 설명 자동 생성
+
+스토어 텍스트도 LLM 생성:
+
+```
+Play the fastest GoStop game ever!
+Cute anime cards and smart AI opponents.
+```
+
+### 13. Analytics 수집
+
+Firebase Analytics 추천:
+
+```
+DAU → retention → ads revenue
+```
+
+### 14. 자동 개선 루프
+
+Analytics → AI 분석 → 다음 variant:
+
+```
+analytics
+  ↓
+LLM 분석
+  ↓
+next variant
+```
+
+예: 애니 테마 앱 수익 좋음 → 비슷한 테마 5개 생성.
+
+### 15. 멀티 에이전트 구조
+
+```
+Idea Agent
+  ↓
+Design Agent
+  ↓
+Code Agent
+  ↓
+Build Agent
+  ↓
+Publish Agent
+  ↓
+Analytics Agent
+```
+
+각 에이전트는 LLM 사용.
+
+### 16. 하루 자동 생성 파이프라인
+
+```
+00:00 scheduler
+  ↓ AI idea
+  ↓ config 생성
+  ↓ code generate
+  ↓ repo push
+  ↓ CI build
+  ↓ store upload
+```
+
+### 17. 100개 앱 운영 구조
+
+```
+apps/
+ ├ gostop_fast
+ ├ gostop_anime
+ ├ gostop_retro
+ ├ gostop_ai_pro
+ ├ gostop_minimal
+```
+
+실제 코드는 **90% 동일**.
+
+### 18. 서버 비용
+
+거의 없음. 필요한 것:
+- CI build
+- AI API
+
+**월 $20~50**
+
+### 19. 예상 수익 구조
+
+```
+100 앱 × $30/month = $3,000/month
+```
+
+### 20. 현실적인 성공 전략
+
+100개 앱을 무작정 만드는 게 아니라:
+
+```
+20개 생성
+  ↓
+상위 5개 선택
+  ↓
+그 변형 80개 생성
+```
+
+데이터 기반으로 성공 패턴을 찾아 집중 생산.
