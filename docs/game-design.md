@@ -151,3 +151,229 @@ pc.addEventListener('datachannel', e => {
 - **레이턴시**: 한국 내 50ms 이내, TURN 서버 백업.
 - **스케일**: 2인 고스톱이니 P2P 완벽, 4인 되면 하이브리드 고려.
 - **테스트**: Localhost + ngrok으로 P2P 시뮬.
+
+## P2P 모바일 앱 개발 계획
+
+맞고/고스톱 P2P 앱 개발의 핵심 4가지:
+1. 게임 로직 재사용 (GitHub 오픈소스)
+2. P2P 네트워크 연결
+3. 모바일 UI
+4. 부정행위 방지
+
+아래는 GitHub 레포 최대 활용 전략 기반 개발 계획입니다.
+
+### 1. 전체 시스템 아키텍처
+
+```
+모바일 앱 (Flutter / React Native)
+        │
+        │ WebRTC P2P 연결
+        ▼
+P2P Game Session
+ ├ 플레이어1
+ ├ 플레이어2
+ └ 게임 상태 동기화
+
+보조 서버 (Optional)
+ ├ Matchmaking
+ ├ NAT traversal (STUN/TURN)
+ └ 부정행위 로그
+```
+
+**핵심 특징:**
+- 게임 데이터는 P2P 직접 교환
+- 서버는 매칭 + NAT 중계만
+- 비용 거의 없음
+
+### 2. 기술 스택 추천
+
+**모바일 프레임워크:**
+
+| 후보 | 추천 여부 | 이유 |
+|------|-----------|------|
+| Flutter | **추천** | P2P WebRTC 라이브러리 풍부, 2D 카드게임 구현 쉬움, 크로스플랫폼 |
+| Unity (2D) | 대안 | 게임 특화, 에셋 풍부 |
+| React Native | 대안 | 웹 개발자 친화적 |
+
+**P2P 네트워크:**
+
+| 후보 | 추천 여부 | 이유 |
+|------|-----------|------|
+| WebRTC | **추천** | 모바일 지원 좋음, NAT 문제 해결, Flutter plugin 존재 (flutter-webrtc) |
+| libp2p | 대안 | 분산형 구조에 강점 |
+
+### 3. GitHub 활용 전략
+
+**고스톱 게임 로직 — GitHub에는 이미 여러 구현이 존재:**
+
+| 리포 | 특징 | 활용 방법 |
+|------|------|-----------|
+| JavaScript 고스톱 (go-stop-js) | 카드 덱, 점수 계산, 룰 구현 | Dart로 포팅 |
+| Python 고스톱 엔진 (py-gostop) | 룰 구현 완전, AI 포함 | 로직 참고 (모바일 직접 사용 어려움) |
+| Unity 고스톱 (Unity-Gostop) | 카드 애니메이션, UI 참고 가능 | UI/UX 레퍼런스 |
+
+### 4. 게임 엔진 구조
+
+게임 핵심은 **State Machine**:
+
+```
+GameState:
+  WAIT_PLAYER → DEAL → TURN → DRAW → CAPTURE → SCORE → END
+```
+
+**데이터 구조:**
+
+```
+GameState {
+  players
+  deck
+  table_cards
+  score
+  turn
+  events
+}
+```
+
+### 5. P2P 동기화 구조
+
+**방식 1: Event Sync**
+
+```
+Player1 → event 전송
+  {
+    type: "play_card",
+    card: "3월"
+  }
+Player2 → 동일하게 적용
+```
+
+게임 상태는 각자 동일하게 계산.
+
+**방식 2: Lockstep**
+
+RTS 게임에서 많이 사용하는 방식:
+
+```
+frame 1: player1 action + player2 action
+frame 2: ...
+```
+
+**장점:** 데이터 적음, 치트 방지에 유리.
+
+### 6. P2P 연결 구조
+
+**WebRTC 연결:**
+
+```
+Player A ──── Signaling Server ──── Player B
+              (매칭/핸드셰이크)
+
+연결 후:
+Player A <──── P2P Direct ────> Player B
+```
+
+**필요 서버:**
+- Matchmaking (방 매칭)
+- Signaling (SDP/ICE 교환)
+- STUN/TURN (NAT 우회)
+
+무료 TURN 서버: **coturn** 활용 가능.
+
+### 7. 게임 화면 구조
+
+**기본 화면:**
+
+```
+-------------------------
+     상대 카드
+
+     테이블 카드
+
+      내 카드
+-------------------------
+    [고]  [스톱]
+```
+
+**Flutter 위젯 구조:**
+
+```
+GamePage
+ ├ OpponentHand
+ ├ TableCards
+ ├ MyHand
+ ├ ActionButtons
+ └ ScorePanel
+```
+
+### 8. 핵심 기능 목록
+
+**기본 게임:**
+- 카드 배포
+- 카드 먹기 / 쌍피
+- 고 / 스톱
+- 점수 계산
+
+**온라인:**
+- 매칭
+- P2P 연결
+- Reconnect (재연결)
+
+**UX:**
+- 카드 애니메이션
+- 효과음
+- 점수 팝업
+
+### 9. 치트 방지
+
+P2P 게임에서 특히 중요한 부분.
+
+**방법 1: Seed 기반 셔플**
+
+```
+seed = hash(playerA + playerB + time)
+shuffle(seed)
+```
+
+둘 다 동일한 deck 생성.
+
+**방법 2: Action 검증**
+
+```
+if illegal_move:
+    reject
+```
+
+### 10. 개발 단계
+
+| Phase | 내용 | 기간 | 주요 기능 |
+|-------|------|------|-----------|
+| Phase 1 | 오프라인 맞고 | 2주 | 카드, 룰, 점수 |
+| Phase 2 | AI 대전 | 1주 | AI 상대 구현 |
+| Phase 3 | P2P 온라인 | 2주 | WebRTC 연결, 이벤트 동기화 |
+| Phase 4 | 매칭 서버 | 1주 | 로비, 방 매칭 |
+
+**1인 개발 MVP: 약 4~6주**
+
+### 11. 예상 문제 & 해결
+
+| 문제 | 설명 | 해결 방법 |
+|------|------|-----------|
+| NAT 문제 | 모바일에서 자주 발생 | TURN 서버 (coturn) |
+| 룰 차이 | 맞고 룰 지역마다 다름 | 설정 옵션 제공 |
+| 싱크 오류 | P2P 게임에서 발생 가능 | State hash 검증 |
+
+### 12. 수익 모델
+
+- **광고**: AdMob
+- **스킨**: 카드 디자인 판매
+- **토큰**: 블록체인 카드 NFT (선택)
+
+### 13. 추천 GitHub 리포 구성
+
+```
+gostop-p2p/
+ ├ client/       # Flutter 앱
+ ├ engine/       # 고스톱 규칙 엔진
+ ├ network/      # WebRTC P2P 모듈
+ └ server/       # Matchmaking 서버
+```
