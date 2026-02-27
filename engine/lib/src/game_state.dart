@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'card.dart';
 import 'deck.dart';
+import 'game_config.dart';
 import 'matching.dart';
 import 'scoring.dart';
 
@@ -30,6 +31,10 @@ class GameState {
   final TableCards tableCards;
   final List<int> goCount;
   final int? winner;
+  final GameConfig config;
+
+  /// 각 플레이어의 쓸 횟수 (피 뺏기용)
+  final List<int> sweepCount;
 
   // 내부 상태
   final Deck _deck;
@@ -40,9 +45,6 @@ class GameState {
   int get deckSize => _deck.length;
   HwatooCard? get drawnCard => _drawnCard;
 
-  /// 점수 기준 (이 점수 이상이면 Go/Stop 선택)
-  static const int scoreThreshold = 3;
-
   GameState._({
     required this.playerCount,
     required this.currentPlayer,
@@ -51,12 +53,15 @@ class GameState {
     required this.capturedCards,
     required this.tableCards,
     required this.goCount,
+    required this.config,
     required Deck deck,
+    List<int>? sweepCount,
     this.winner,
     HwatooCard? drawnCard,
     HwatooCard? playedCard,
     HwatooCard? matchedTableCard,
   })  : _deck = deck,
+        sweepCount = sweepCount ?? List.filled(playerCount, 0),
         _drawnCard = drawnCard,
         _playedCard = playedCard,
         _matchedTableCard = matchedTableCard;
@@ -65,6 +70,7 @@ class GameState {
   factory GameState.newGame({
     required int playerCount,
     Random? random,
+    GameConfig config = GameConfig.standard,
   }) {
     assert(playerCount == 2 || playerCount == 3);
     final deck = Deck(random: random)..shuffle();
@@ -94,6 +100,7 @@ class GameState {
       capturedCards: List.generate(playerCount, (_) => <HwatooCard>[]),
       tableCards: TableCards(tableCardList),
       goCount: List.filled(playerCount, 0),
+      config: config,
       deck: deck,
     );
   }
@@ -106,6 +113,7 @@ class GameState {
     List<List<HwatooCard>>? capturedCards,
     TableCards? tableCards,
     List<int>? goCount,
+    List<int>? sweepCount,
     Deck? deck,
     int? winner,
     HwatooCard? drawnCard,
@@ -120,6 +128,8 @@ class GameState {
       capturedCards: capturedCards ?? this.capturedCards,
       tableCards: tableCards ?? this.tableCards,
       goCount: goCount ?? this.goCount,
+      sweepCount: sweepCount ?? this.sweepCount,
+      config: config,
       deck: deck ?? _deck,
       winner: winner ?? this.winner,
       drawnCard: drawnCard ?? _drawnCard,
@@ -227,7 +237,7 @@ class GameState {
 
     // 점수 체크
     final score = Scoring.totalScore(newCaptured[currentPlayer]);
-    if (score >= scoreThreshold) {
+    if (score >= config.scoreThreshold) {
       return copyWith(
         phase: GamePhase.goStop,
         capturedCards: newCaptured,
