@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../game/game_notifier.dart';
 import '../game/settings_service.dart';
+import '../game/sound_service.dart';
+import '../game/theme_service.dart';
 
 /// 게임 규칙 설정 화면
 class SettingsPage extends ConsumerStatefulWidget {
@@ -243,6 +245,70 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   subtitle: '광을 3장 이상 먹었지만 패배 시 배수',
                   value: _useMungTung,
                   onChanged: (v) => setState(() => _useMungTung = v),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // === 앱 설정 ===
+          _SectionHeader(title: '앱 설정'),
+          Container(
+            decoration: _cardDecoration(),
+            child: Column(
+              children: [
+                // 효과음 토글
+                SwitchListTile(
+                  title: const Text(
+                    '효과음',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '카드 효과음 재생',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  value: SoundService.instance.soundEnabled,
+                  onChanged: (v) {
+                    SoundService.instance.setSoundEnabled(v);
+                    setState(() {});
+                  },
+                  activeColor: Colors.green,
+                  dense: true,
+                ),
+                _divider(),
+                // 테마 토글
+                SwitchListTile(
+                  title: const Text(
+                    '다크 모드',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '화면 밝기 전환',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  value: ref.watch(themeModeProvider) == ThemeMode.dark,
+                  onChanged: (v) {
+                    ref.read(themeModeProvider.notifier).setThemeMode(
+                      v ? ThemeMode.dark : ThemeMode.light,
+                    );
+                  },
+                  activeColor: Colors.green,
+                  dense: true,
                 ),
               ],
             ),

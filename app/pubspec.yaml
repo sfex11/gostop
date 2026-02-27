@@ -1,6 +1,6 @@
 name: gostop_app
 description: 고스톱 P2P 카드게임
-version: 0.1.0
+version: 0.4.0
 publish_to: none
 
 environment:
@@ -13,11 +13,22 @@ dependencies:
   shared_preferences: ^2.3.0
   engine:
     path: ../engine
+  # P2P 네트워킹
+  flutter_webrtc: ^0.12.0
+  web_socket_channel: ^3.0.0
+  # 효과음
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  # 앱 아이콘 & 스플래시
+  flutter_launcher_icons: ^0.14.0
+  flutter_native_splash: ^2.4.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/sounds/
+    - assets/icon/

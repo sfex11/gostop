@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:engine/engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'sound_service.dart';
+
 /// 게임 이벤트 (애니메이션 트리거용)
 enum GameEvent {
   none,
@@ -160,6 +162,7 @@ class GameNotifier extends Notifier<GameUiState> {
   }
 
   void _executePlay(HwatooCard card, {HwatooCard? chosenMatch}) {
+    SoundService.instance.play(SoundEffect.cardPlay);
     var gs = state.gameState.playCard(card, chosenMatch: chosenMatch);
 
     // 캡처 페이즈: 덱에서 뒤집은 카드 처리
@@ -195,6 +198,11 @@ class GameNotifier extends Notifier<GameUiState> {
     final curSweep = gs.sweepCount[state.gameState.currentPlayer];
     final isSweep = curSweep > prevSweep;
 
+    if (isSweep) SoundService.instance.play(SoundEffect.sweep);
+    if (!isSweep && curSweep == prevSweep) {
+      SoundService.instance.play(SoundEffect.cardCapture);
+    }
+
     if (gs.phase == GamePhase.goStop && gs.currentPlayer == 0) {
       final score = Scoring.totalScore(gs.capturedCards[0]);
       state = state.copyWith(
@@ -207,6 +215,8 @@ class GameNotifier extends Notifier<GameUiState> {
 
     if (gs.phase == GamePhase.end) {
       final result = GameResult.fromState(gs);
+      final isWin = gs.winner == 0;
+      SoundService.instance.play(isWin ? SoundEffect.win : SoundEffect.lose);
       state = state.copyWith(
         gameState: gs,
         result: result,
@@ -237,6 +247,7 @@ class GameNotifier extends Notifier<GameUiState> {
   /// Go 선택
   void chooseGo() {
     if (state.gameState.phase != GamePhase.goStop) return;
+    SoundService.instance.play(SoundEffect.go);
     var gs = state.gameState.chooseGo();
     final goCount = state.gameState.goCount[state.gameState.currentPlayer] + 1;
 
@@ -262,6 +273,7 @@ class GameNotifier extends Notifier<GameUiState> {
   /// Stop 선택
   void chooseStop() {
     if (state.gameState.phase != GamePhase.goStop) return;
+    SoundService.instance.play(SoundEffect.stop);
     var gs = state.gameState.chooseStop();
     final result = GameResult.fromState(gs);
     state = state.copyWith(

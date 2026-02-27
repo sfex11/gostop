@@ -1,0 +1,13 @@
+{
+  "name": "gostop-signaling",
+  "version": "1.0.0",
+  "description": "고스톱 P2P 시그널링 서버",
+  "main": "signaling.js",
+  "scripts": {
+    "start": "node signaling.js",
+    "dev": "node signaling.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

@@ -6,6 +6,7 @@ import '../game/game_notifier.dart';
 import '../game/settings_service.dart';
 import '../game/stats_service.dart';
 import 'game_page.dart';
+import 'online_lobby_page.dart';
 import 'settings_page.dart';
 
 /// 로비 (시작 화면)
@@ -200,28 +201,34 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
 
             const SizedBox(height: 16),
 
-            // 온라인 대전 (미구현)
+            // 온라인 대전
             SizedBox(
               width: 220,
               child: OutlinedButton(
-                onPressed: null, // Phase 3에서 구현
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const OnlineLobbyPage()),
+                  );
+                },
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  side: BorderSide(color: Colors.amber.withValues(alpha: 0.4)),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.wifi, size: 24, color: Colors.white38),
-                    const SizedBox(width: 10),
+                    Icon(Icons.wifi, size: 24, color: Colors.amber),
+                    SizedBox(width: 10),
                     Text(
                       'P2P 대전',
                       style: TextStyle(
                         fontSize: 20,
-                        color: Colors.white38,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber,
                       ),
                     ),
                   ],
@@ -267,7 +274,7 @@ class _LobbyPageState extends ConsumerState<LobbyPage> {
             const SizedBox(height: 60),
 
             Text(
-              'v0.3.0 — Phase 3',
+              'v0.4.0 — P2P Online',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withValues(alpha: 0.3),
