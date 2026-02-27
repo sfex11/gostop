@@ -118,18 +118,40 @@ class _ScoreChip extends StatelessWidget {
           if (goCount > 0)
             Container(
               margin: const EdgeInsets.only(top: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.orange.shade800,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                '${goCount}고',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                gradient: LinearGradient(
+                  colors: [Colors.orange.shade800, Colors.red.shade700],
                 ),
+                borderRadius: BorderRadius.circular(4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${goCount}고',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    '×${goCount + 1}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.amber,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

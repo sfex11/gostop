@@ -244,6 +244,10 @@ class _GamePageState extends ConsumerState<GamePage> {
                 cardWidth: 52,
                 cardHeight: 72,
                 matchableCards: matchableCards,
+                enableDimming:
+                    uiState.isPlayerTurn && gs.phase == GamePhase.play,
+                showMonthBadge: true,
+                enableLongPressZoom: true,
                 onCardTap: uiState.isPlayerTurn &&
                         gs.phase == GamePhase.play
                     ? (card) => notifier.playCard(card)
@@ -283,6 +287,30 @@ class _GamePageState extends ConsumerState<GamePage> {
                 child: Center(
                   child: GoStopBanner(
                     isGo: false,
+                    onComplete: () {
+                      if (mounted) setState(() => _activeEvent = null);
+                    },
+                  ),
+                ),
+              ),
+            if (_activeEvent == GameEvent.tripleMatch)
+              Positioned.fill(
+                child: Center(
+                  child: SpecialMoveBanner(
+                    text: '뻑!',
+                    color: Colors.purple.shade800,
+                    onComplete: () {
+                      if (mounted) setState(() => _activeEvent = null);
+                    },
+                  ),
+                ),
+              ),
+            if (_activeEvent == GameEvent.bomb)
+              Positioned.fill(
+                child: Center(
+                  child: SpecialMoveBanner(
+                    text: '폭탄!',
+                    color: Colors.red.shade900,
                     onComplete: () {
                       if (mounted) setState(() => _activeEvent = null);
                     },
@@ -441,9 +469,11 @@ class _MonthGroup extends StatelessWidget {
               width: 48,
               height: 66,
               highlighted: highlightedCards.contains(cards[i]),
+              showMonthBadge: true,
               onTap: selectableCards.contains(cards[i]) && onCardTap != null
                   ? () => onCardTap!(cards[i])
                   : null,
+              onLongPress: () => showCardZoomDialog(context, cards[i]),
             ),
           ],
         ],

@@ -8,9 +8,11 @@ import 'sound_service.dart';
 /// 게임 이벤트 (애니메이션 트리거용)
 enum GameEvent {
   none,
-  sweep,      // 쓸
-  goChosen,   // 고 선택
-  stopChosen, // 스톱 선택
+  sweep,        // 쓸
+  goChosen,     // 고 선택
+  stopChosen,   // 스톱 선택
+  tripleMatch,  // 뻑 (3장 매칭)
+  bomb,         // 폭탄 (같은 월 4장)
 }
 
 /// 게임 UI 상태
@@ -163,6 +165,12 @@ class GameNotifier extends Notifier<GameUiState> {
 
   void _executePlay(HwatooCard card, {HwatooCard? chosenMatch}) {
     SoundService.instance.play(SoundEffect.cardPlay);
+
+    // 뻑(3장 매칭) 감지
+    final preTable = state.gameState.tableCards;
+    final preMatches = preTable.findMatches(card);
+    final isTriple = preMatches.length == 3;
+
     var gs = state.gameState.playCard(card, chosenMatch: chosenMatch);
 
     // 캡처 페이즈: 덱에서 뒤집은 카드 처리
@@ -174,7 +182,8 @@ class GameNotifier extends Notifier<GameUiState> {
         state = state.copyWith(
           gameState: gs,
           pendingCaptureChoices: captureMatches,
-          message: '뒤집힌 카드(${_cardLabel(drawn)})로 가져갈 카드를 선택하세요',
+          message: '뒤집힌 카드(${_cardLabel(drawn)})를 매칭하세요',
+          event: isTriple ? GameEvent.tripleMatch : GameEvent.none,
         );
         return;
       }
@@ -182,7 +191,7 @@ class GameNotifier extends Notifier<GameUiState> {
 
     // 자동 캡처 해결
     gs = gs.resolveCapture();
-    _afterCapture(gs);
+    _afterCapture(gs, extraEvent: isTriple ? GameEvent.tripleMatch : null);
   }
 
   /// 캡처 2장 매칭 선택 완료
@@ -192,7 +201,7 @@ class GameNotifier extends Notifier<GameUiState> {
     _afterCapture(gs);
   }
 
-  void _afterCapture(GameState gs) {
+  void _afterCapture(GameState gs, {GameEvent? extraEvent}) {
     // 쓸 감지 (이전 sweepCount와 비교)
     final prevSweep = state.gameState.sweepCount[state.gameState.currentPlayer];
     final curSweep = gs.sweepCount[state.gameState.currentPlayer];
@@ -203,12 +212,19 @@ class GameNotifier extends Notifier<GameUiState> {
       SoundService.instance.play(SoundEffect.cardCapture);
     }
 
+    // 이벤트 우선순위: sweep > extraEvent(뻑 등)
+    final event = isSweep
+        ? GameEvent.sweep
+        : extraEvent ?? GameEvent.none;
+
     if (gs.phase == GamePhase.goStop && gs.currentPlayer == 0) {
       final score = Scoring.totalScore(gs.capturedCards[0]);
+      final goCount = gs.goCount[0];
+      final multiplier = goCount > 0 ? ' (×${goCount + 1})' : '';
       state = state.copyWith(
         gameState: gs,
-        message: '${score}점! 고 하시겠습니까?',
-        event: isSweep ? GameEvent.sweep : GameEvent.none,
+        message: '${score}점$multiplier! 고 하시겠습니까?',
+        event: event,
       );
       return;
     }
@@ -221,7 +237,7 @@ class GameNotifier extends Notifier<GameUiState> {
         gameState: gs,
         result: result,
         message: _endMessage(gs),
-        event: isSweep ? GameEvent.sweep : GameEvent.none,
+        event: event,
       );
       return;
     }
@@ -230,8 +246,8 @@ class GameNotifier extends Notifier<GameUiState> {
       state = state.copyWith(
         gameState: gs,
         aiThinking: true,
-        message: 'AI 생각 중...',
-        event: isSweep ? GameEvent.sweep : GameEvent.none,
+        message: 'AI 턴...',
+        event: event,
       );
       _runAiTurn(gs);
       return;
@@ -240,7 +256,7 @@ class GameNotifier extends Notifier<GameUiState> {
     state = state.copyWith(
       gameState: gs,
       message: null,
-      event: isSweep ? GameEvent.sweep : GameEvent.none,
+      event: event,
     );
   }
 

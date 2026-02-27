@@ -184,6 +184,115 @@ class _SweepEffectOverlayState extends State<SweepEffectOverlay>
   }
 }
 
+/// 뻑(3장 매칭) / 폭탄 효과 오버레이
+class SpecialMoveBanner extends StatefulWidget {
+  final String text;
+  final Color color;
+  final VoidCallback? onComplete;
+
+  const SpecialMoveBanner({
+    super.key,
+    required this.text,
+    required this.color,
+    this.onComplete,
+  });
+
+  @override
+  State<SpecialMoveBanner> createState() => _SpecialMoveBannerState();
+}
+
+class _SpecialMoveBannerState extends State<SpecialMoveBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+  late Animation<double> _shakeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 0.2, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.4, curve: Curves.elasticOut),
+      ),
+    );
+    _shakeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.linear),
+      ),
+    );
+    _opacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+      ),
+    );
+    _controller.forward().then((_) => widget.onComplete?.call());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // 화면 떨림 효과
+        final shakeOffset = math.sin(_shakeAnimation.value * math.pi * 6) * 4;
+        return Opacity(
+          opacity: _opacityAnimation.value,
+          child: Transform.translate(
+            offset: Offset(shakeOffset, 0),
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      widget.color.withValues(alpha: 0.9),
+                      widget.color.withValues(alpha: 0.7),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white70, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withValues(alpha: 0.5),
+                      blurRadius: 24,
+                      spreadRadius: 6,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(
+                    fontSize: 38,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 3,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// 고/스톱 결정 텍스트 애니메이션
 class GoStopBanner extends StatefulWidget {
   final bool isGo;
