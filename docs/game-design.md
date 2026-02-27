@@ -555,3 +555,207 @@ ai/            # AI 플레이어
 ```
 
 각 레이어를 독립 모듈로 분리해 테스트/재사용성 극대화.
+
+## AI 앱 팩토리 — 하루에 고스톱 앱 하나씩 만드는 구조
+
+앱 생성 파이프라인 + 템플릿 기반 코드 생성 + 자동 퍼블리싱을 결합한 **App Factory** 형태.
+핵심: **90%를 템플릿화하고 AI는 10%만 바꾸게 하는 것**.
+
+### 1. 전체 구조 (App Factory)
+
+```
+Idea Generator (AI)
+        │
+        ▼
+Variant Generator (룰 / UI / 테마 / 수익모델 조합)
+        │
+        ▼
+Code Generator (template + AI patch)
+        │
+        ▼
+Build System (Flutter build)
+        │
+        ▼
+Publish Bot (Google Play 업로드)
+```
+
+하루에 하나씩 가능한 이유 — 바꾸는 건 이것뿐:
+- UI 스킨
+- 룰 변형
+- 테마
+- AI 난이도
+
+### 2. 핵심 전략
+
+앱을 **"제품"이 아니라 "파생상품"**으로 만든다:
+
+```
+고스톱 클래식
+고스톱 프로
+고스톱 빠른게임
+고스톱 AI대전
+고스톱 애니 스타일
+고스톱 레트로
+```
+
+실제 코드 차이는 **UI theme / AI difficulty / rule config** 뿐.
+
+### 3. 핵심 템플릿 구조
+
+```
+gostop-template/
+ engine/     # 고스톱 룰
+ ai/         # AI 플레이어
+ ui/         # 카드 UI
+ network/    # P2P (optional)
+ skins/
+  theme1/
+  theme2/
+  theme3/
+```
+
+AI는 여기서 **skin, rule, difficulty**만 변경.
+
+### 4. AI 생성 프로세스
+
+**Step 1: 아이디어 생성 (LLM)**
+
+```
+오늘의 앱 아이디어:
+ "애니메이션 스타일 맞고"
+ 특징:
+  - 빠른 게임
+  - 귀여운 카드
+  - 초보용 AI
+```
+
+**Step 2: Config 생성**
+
+```json
+{
+  "theme": "anime",
+  "ai_level": 1,
+  "rule_variant": "fast",
+  "ads": true
+}
+```
+
+**Step 3: 코드 생성**
+
+AI는 템플릿에 patch 적용:
+
+```
+generate_app(config) → apps/gostop_anime/
+```
+
+### 5. 코드 생성 방식
+
+| 방법 | 설명 | 추천 |
+|------|------|------|
+| 템플릿 복사 | `cp template new_app` → AI가 수정 | 간단하지만 관리 어려움 |
+| Config 기반 | `app = generate_app(config)` | **추천** — 일관성 유지 |
+
+### 6. Config 예시
+
+```yaml
+app_name: gostop_anime
+theme: anime
+card_style: cute
+ai: easy
+speed: fast
+ads: admob
+```
+
+### 7. 코드 생성 예
+
+AI가 config에 따라 생성:
+
+```dart
+ThemeData theme = AnimeTheme();
+```
+
+```dart
+AIPlayer(level: 1)
+```
+
+### 8. 자동 빌드 시스템
+
+GitHub Actions 파이프라인:
+
+```
+generate app → build apk → upload store
+```
+
+### 9. 자동화 파이프라인
+
+```
+scheduler (daily)
+  ↓
+AI generate config
+  ↓
+code generator
+  ↓
+flutter build
+  ↓
+upload playstore
+```
+
+### 10. 핵심 AI 역할
+
+AI는 새로운 앱을 만들지 않음. 대신:
+- Config 생성
+- 테마 생성
+- 아이콘 생성
+- 스토어 설명 생성
+
+### 11. UI 자동 생성
+
+이미지 생성 AI 활용 (OpenAI 이미지 모델, Stability AI):
+
+```
+card art → icon → screenshot
+```
+
+### 12. AI 생성 앱 일정 예시
+
+| 일차 | 앱 |
+|------|-----|
+| Day 1 | 고스톱 클래식 |
+| Day 2 | 고스톱 애니 |
+| Day 3 | 고스톱 빠른게임 |
+| Day 4 | 고스톱 AI 챌린지 |
+
+### 13. 수익 구조
+
+```
+100개 앱 × $50/month = $5,000/month
+```
+
+### 14. 카드게임이 적합한 이유
+
+카드게임은 **로직 동일 + UI 동일**이라 파생앱 생산이 매우 쉬움.
+
+### 15. 고급 구조 (AI 멀티 에이전트)
+
+```
+Idea Agent
+  ↓
+Design Agent
+  ↓
+Code Agent
+  ↓
+Test Agent
+  ↓
+Publish Agent
+```
+
+GitHub + OpenAI 기반으로 구축 가능.
+
+### 16. 현실적인 결과
+
+```
+1달: 30 앱
+1년: 300 앱
+```
+
+AI 앱 공장(App Factory) 구조는 현재 AI 시대에서 가장 강력한 1인 개발 전략 중 하나.
