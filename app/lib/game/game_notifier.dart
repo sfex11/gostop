@@ -3,6 +3,14 @@ import 'dart:math';
 import 'package:engine/engine.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// 게임 이벤트 (애니메이션 트리거용)
+enum GameEvent {
+  none,
+  sweep,      // 쓸
+  goChosen,   // 고 선택
+  stopChosen, // 스톱 선택
+}
+
 /// 게임 UI 상태
 class GameUiState {
   final GameState gameState;
@@ -25,6 +33,12 @@ class GameUiState {
   /// AI 난이도
   final AiDifficulty difficulty;
 
+  /// 현재 이벤트 (애니메이션 트리거)
+  final GameEvent event;
+
+  /// 고 카운트 (애니메이션 표시용)
+  final int lastGoCount;
+
   const GameUiState({
     required this.gameState,
     this.aiThinking = false,
@@ -33,6 +47,8 @@ class GameUiState {
     this.message,
     this.result,
     this.difficulty = AiDifficulty.normal,
+    this.event = GameEvent.none,
+    this.lastGoCount = 0,
   });
 
   GameUiState copyWith({
@@ -43,6 +59,8 @@ class GameUiState {
     String? message,
     GameResult? result,
     AiDifficulty? difficulty,
+    GameEvent? event,
+    int? lastGoCount,
   }) {
     return GameUiState(
       gameState: gameState ?? this.gameState,
@@ -53,6 +71,8 @@ class GameUiState {
       message: message,
       result: result,
       difficulty: difficulty ?? this.difficulty,
+      event: event ?? GameEvent.none,
+      lastGoCount: lastGoCount ?? this.lastGoCount,
     );
   }
 
@@ -70,6 +90,7 @@ class GameUiState {
 /// 게임 컨트롤러 (Riverpod Notifier)
 class GameNotifier extends Notifier<GameUiState> {
   Agent _ai = HeuristicAgent();
+  GameConfig _config = GameConfig.standard;
 
   @override
   GameUiState build() {
@@ -84,16 +105,24 @@ class GameNotifier extends Notifier<GameUiState> {
     state = state.copyWith(difficulty: difficulty);
   }
 
+  /// 게임 규칙 설정 변경
+  void setConfig(GameConfig config) {
+    _config = config;
+  }
+
+  /// 현재 GameConfig 반환
+  GameConfig get config => _config;
+
   /// 새 게임 시작
   void newGame() {
     state = GameUiState(
       gameState: GameState.newGame(
         playerCount: 2,
         random: Random(),
+        config: _config,
       ),
       difficulty: state.difficulty,
     );
-    // 난이도 유지
     _ai = HeuristicAgent(difficulty: state.difficulty);
   }
 
@@ -161,12 +190,17 @@ class GameNotifier extends Notifier<GameUiState> {
   }
 
   void _afterCapture(GameState gs) {
+    // 쓸 감지 (이전 sweepCount와 비교)
+    final prevSweep = state.gameState.sweepCount[state.gameState.currentPlayer];
+    final curSweep = gs.sweepCount[state.gameState.currentPlayer];
+    final isSweep = curSweep > prevSweep;
+
     if (gs.phase == GamePhase.goStop && gs.currentPlayer == 0) {
-      // 플레이어가 고/스톱 선택
       final score = Scoring.totalScore(gs.capturedCards[0]);
       state = state.copyWith(
         gameState: gs,
         message: '${score}점! 고 하시겠습니까?',
+        event: isSweep ? GameEvent.sweep : GameEvent.none,
       );
       return;
     }
@@ -177,18 +211,27 @@ class GameNotifier extends Notifier<GameUiState> {
         gameState: gs,
         result: result,
         message: _endMessage(gs),
+        event: isSweep ? GameEvent.sweep : GameEvent.none,
       );
       return;
     }
 
-    // AI 턴인 경우
     if (gs.currentPlayer != 0) {
-      state = state.copyWith(gameState: gs, aiThinking: true, message: 'AI 생각 중...');
+      state = state.copyWith(
+        gameState: gs,
+        aiThinking: true,
+        message: 'AI 생각 중...',
+        event: isSweep ? GameEvent.sweep : GameEvent.none,
+      );
       _runAiTurn(gs);
       return;
     }
 
-    state = state.copyWith(gameState: gs, message: null);
+    state = state.copyWith(
+      gameState: gs,
+      message: null,
+      event: isSweep ? GameEvent.sweep : GameEvent.none,
+    );
   }
 
   /// Go 선택
@@ -202,10 +245,17 @@ class GameNotifier extends Notifier<GameUiState> {
         gameState: gs,
         aiThinking: true,
         message: '${goCount}고! AI 턴...',
+        event: GameEvent.goChosen,
+        lastGoCount: goCount,
       );
       _runAiTurn(gs);
     } else {
-      state = state.copyWith(gameState: gs, message: '${goCount}고!');
+      state = state.copyWith(
+        gameState: gs,
+        message: '${goCount}고!',
+        event: GameEvent.goChosen,
+        lastGoCount: goCount,
+      );
     }
   }
 
@@ -218,6 +268,7 @@ class GameNotifier extends Notifier<GameUiState> {
       gameState: gs,
       result: result,
       message: _endMessage(gs),
+      event: GameEvent.stopChosen,
     );
   }
 

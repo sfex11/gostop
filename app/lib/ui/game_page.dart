@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../game/game_notifier.dart';
+import 'animated_card.dart';
 import 'card_widget.dart';
 import 'captured_area.dart';
 import 'result_dialog.dart';
@@ -18,12 +19,22 @@ class GamePage extends ConsumerStatefulWidget {
 
 class _GamePageState extends ConsumerState<GamePage> {
   bool _resultShown = false;
+  GameEvent? _activeEvent;
 
   @override
   Widget build(BuildContext context) {
     final uiState = ref.watch(gameProvider);
     final gs = uiState.gameState;
     final notifier = ref.read(gameProvider.notifier);
+
+    // 이벤트 애니메이션 트리거
+    if (uiState.event != GameEvent.none && _activeEvent != uiState.event) {
+      _activeEvent = uiState.event;
+      // 일정 시간 후 리셋
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) setState(() => _activeEvent = null);
+      });
+    }
 
     // 게임 종료 시 결과 다이얼로그
     if (uiState.isGameOver && !_resultShown && uiState.result != null) {
@@ -51,7 +62,9 @@ class _GamePageState extends ConsumerState<GamePage> {
         ],
       ),
       body: SafeArea(
-        child: Column(
+        child: Stack(
+          children: [
+            Column(
           children: [
             // === AI 손패 (뒷면) ===
             _sectionLabel('AI 손패'),
@@ -205,6 +218,43 @@ class _GamePageState extends ConsumerState<GamePage> {
             ),
 
             const SizedBox(height: 8),
+          ],
+        ),
+
+            // === 이벤트 애니메이션 오버레이 ===
+            if (_activeEvent == GameEvent.sweep)
+              Positioned.fill(
+                child: Center(
+                  child: SweepEffectOverlay(
+                    onComplete: () {
+                      if (mounted) setState(() => _activeEvent = null);
+                    },
+                  ),
+                ),
+              ),
+            if (_activeEvent == GameEvent.goChosen)
+              Positioned.fill(
+                child: Center(
+                  child: GoStopBanner(
+                    isGo: true,
+                    goCount: uiState.lastGoCount,
+                    onComplete: () {
+                      if (mounted) setState(() => _activeEvent = null);
+                    },
+                  ),
+                ),
+              ),
+            if (_activeEvent == GameEvent.stopChosen)
+              Positioned.fill(
+                child: Center(
+                  child: GoStopBanner(
+                    isGo: false,
+                    onComplete: () {
+                      if (mounted) setState(() => _activeEvent = null);
+                    },
+                  ),
+                ),
+              ),
           ],
         ),
       ),

@@ -1,7 +1,7 @@
-# 다음 단계 — Phase 2 완료 + Phase 3 계획
+# 다음 단계 — Phase 3 진행 중
 
-> 현재 상태: 룰 엔진 완성 + 버그 수정, HeuristicAgent, Flutter 앱 (텍스트 기반)
-> 목표: **카드 에셋 + 애니메이션 + P2P 온라인 대전**
+> 현재 상태: 룰 엔진 완성 + HeuristicAgent + Flutter 앱 (비주얼 카드 + 애니메이션 + 설정 + 전적)
+> 목표: **P2P 온라인 대전 + 효과음 + 마감**
 
 ---
 
@@ -20,50 +20,55 @@
 | 기본 AI | ✅ 완료 | RandomAgent |
 | 전략 AI | ✅ 완료 | HeuristicAgent (easy/normal/hard) |
 | Flutter 프로젝트 | ✅ 완료 | app/ (Riverpod) |
-| 게임 컨트롤러 | ✅ 완료 | GameNotifier + GameResult 통합 |
-| 카드 위젯 | ✅ 완료 | 텍스트 플레이스홀더 |
-| 게임 화면 | ✅ 완료 | GamePage (전체 레이아웃) |
+| 게임 컨트롤러 | ✅ 완료 | GameNotifier + GameResult + GameConfig 통합 |
+| 카드 비주얼 렌더링 | ✅ 완료 | CustomPainter (HwatooCardPainter, CardBackPainter) |
+| 카드 애니메이션 | ✅ 완료 | FlipCard, SweepEffectOverlay, GoStopBanner |
+| 게임 화면 | ✅ 완료 | GamePage (애니메이션 오버레이 통합) |
 | 게임 루프 | ✅ 완료 | 플레이→캡처→고스톱→결과 |
-| 결과 화면 | ✅ 완료 | 배수 + 고보너스 + 최종점수 표시 |
-| 로비 | ✅ 완료 | 난이도 선택 포함 |
+| 결과 화면 | ✅ 완료 | 배수 + 고보너스 + 최종점수 + 전적 표시 |
+| 로비 | ✅ 완료 | 난이도 선택 + 전적 표시 + 설정 진입 |
+| 규칙 설정 화면 | ✅ 완료 | GameConfig 13개 토글/슬라이더, SharedPreferences 저장 |
+| 전적 저장 | ✅ 완료 | 승/패/무 + 연승/연패 + 최고연승, SharedPreferences |
 | 단위 테스트 | ✅ 완료 | 107+ tests |
 
 ---
 
-## 이번에 수정된 엔진 버그
+## Phase 3에서 수정/추가된 사항
 
-| 버그 | 수정 내용 |
-|------|-----------|
-| resolveCapture 트리플매치 | `_matchedTableCard` → `_playMatchedCards` (리스트)로 변경, 3장 모두 정상 획득 |
-| calculateJunk 컵 임계값 | `>= 9` → `totalJunk + 2 >= 10` (8피 + 컵 = 10피 가능) |
-| sweep 미구현 | 테이블 빈 상태 감지 + 피뺏기 구현 |
-| GameConfig 플래그 무시 | Multiplier/Scoring에 config 전달, 각 플래그 분기 |
-| 최종 점수 정산 없음 | GameResult.fromState()로 (기본점수+고보너스)×배수 계산 |
+### Step 8: 카드 비주얼 렌더링
+- `HwatooCardPainter` — CustomPainter로 화투 카드 앞면 렌더링
+  - 월별 테마 색상 (소나무~버들)
+  - 한자 심볼 + 월 번호 + 유형 뱃지 + 카드 이름
+  - 광 카드 코너 장식
+- `CardBackPainter` — 카드 뒷면 (다이아몬드 패턴 + 花 마크)
+- `HwatooCardWidget` — 그림자 + 하이라이트 효과 통합
+
+### Step 9: 카드 애니메이션
+- `FlipCard` — 카드 뒤집기 애니메이션 (3D 원근감)
+- `SweepEffectOverlay` — 쓸 시각 효과 (확대+페이드)
+- `GoStopBanner` — 고/스톱 결정 텍스트 (탄성 슬라이드+페이드)
+- `GameEvent` enum — 이벤트 기반 애니메이션 트리거
+- GamePage에 Stack 오버레이 통합
+
+### Step 10: 규칙 설정 화면
+- `SettingsPage` — 13개 GameConfig 옵션
+  - 점수 기준 슬라이더 (1~10점)
+  - 특수 규칙 토글 (쌍피, 폭탄, 흔들기, 총통, 피뺏기, 쓸, 고도리)
+  - 배수 규칙 토글 (광박, 피박, 고박, 멍따)
+  - 초기화 버튼 (표준룰 복원)
+- `SettingsService` — SharedPreferences 저장/로드
+- `GameNotifier` — setConfig() 메서드, 새 게임에 config 적용
+- 로비에 설정 버튼 추가
+
+### Step 11: 전적 저장
+- `GameStats` — 승/패/무/연승/연패/최고연승 데이터
+- `StatsService` — SharedPreferences 기반 전적 CRUD
+- `ResultDialog` — 게임 결과에 전적 자동 기록 + 표시
+- `LobbyPage` — 전적 요약 표시 (게임 복귀 시 자동 갱신)
 
 ---
 
-## 다음 단계 (Phase 3)
-
-### Step 8: 화투 카드 이미지 에셋
-- 오픈소스 화투 이미지 확보 (48장)
-- `HwatooCardWidget`에 이미지 렌더링
-- 카드 뒷면 디자인
-
-### Step 9: 카드 애니메이션
-- 카드 이동 애니메이션 (손패→바닥, 바닥→획득)
-- 덱 뒤집기 애니메이션
-- 쓸(sweep) 시각 효과
-- 고/스톱 텍스트 애니메이션
-
-### Step 10: 설정 화면
-- GameConfig 규칙 변경 UI (토글 스위치)
-- 점수 기준 슬라이더 (3점 / 7점)
-- 설정 SharedPreferences 저장
-
-### Step 11: 전적 저장
-- SharedPreferences로 승/패/무 기록
-- 로비에 전적 표시
-- 연승 기록
+## 다음 단계 (Phase 3 나머지)
 
 ### Step 12: P2P 온라인 대전 (Phase 3 핵심)
 - WebRTC 기반 P2P 연결
@@ -84,16 +89,18 @@
 | 항목 | 결정 |
 |------|------|
 | 상태 관리 | Riverpod (확정) |
-| 카드 에셋 | 오픈소스 우선, 없으면 텍스트 플레이스홀더 (현재 텍스트) |
+| 카드 렌더링 | CustomPainter (이미지 에셋 불필요) |
 | 앱 구조 | engine/ (순수 Dart) + app/ (Flutter) 분리 |
 | AI 턴 딜레이 | 700ms (현재 적용) |
 | AI 난이도 | easy/normal/hard (HeuristicAgent) |
+| 설정 저장 | SharedPreferences |
+| 전적 저장 | SharedPreferences |
 | 최소 타겟 | Android API 23, iOS 12 |
 
 ---
 
 ## 즉시 착수 가능한 작업
 
-1. **화투 이미지 에셋** 확보 및 카드 위젯에 적용
-2. **카드 이동 애니메이션** 구현
-3. **설정 화면** 및 전적 저장
+1. **P2P 온라인 대전** — WebRTC + 시그널링 서버
+2. **효과음 추가** — audioplayers 패키지
+3. **앱 아이콘/스플래시** — flutter_launcher_icons

@@ -1,35 +1,9 @@
 import 'package:engine/engine.dart';
 import 'package:flutter/material.dart';
 
-/// 월 이름 (한글)
-const _monthNames = [
-  '1월', '2월', '3월', '4월', '5월', '6월',
-  '7월', '8월', '9월', '10월', '11월', '12월',
-];
+import 'card_painter.dart';
 
-/// 카드 유형별 색상
-Color _cardTypeColor(CardType type) {
-  return switch (type) {
-    CardType.bright => const Color(0xFFFFD600),
-    CardType.animal => const Color(0xFF4CAF50),
-    CardType.ribbon => const Color(0xFFE53935),
-    CardType.junk => const Color(0xFF9E9E9E),
-    CardType.doubleJunk => const Color(0xFFB0BEC5),
-  };
-}
-
-/// 카드 유형 라벨
-String _cardTypeLabel(CardType type) {
-  return switch (type) {
-    CardType.bright => '광',
-    CardType.animal => '동물',
-    CardType.ribbon => '띠',
-    CardType.junk => '피',
-    CardType.doubleJunk => '쌍피',
-  };
-}
-
-/// 화투 카드 위젯 (텍스트 플레이스홀더)
+/// 화투 카드 위젯 (CustomPainter 기반 비주얼 렌더링)
 class HwatooCardWidget extends StatelessWidget {
   final HwatooCard card;
   final bool faceDown;
@@ -52,29 +26,6 @@ class HwatooCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (faceDown) {
-      return GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1B5E20),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: const Color(0xFF388E3C), width: 1.5),
-          ),
-          child: const Center(
-            child: Text('🎴', style: TextStyle(fontSize: 20)),
-          ),
-        ),
-      );
-    }
-
-    final monthIndex = card.month.index;
-    final monthLabel = _monthNames[monthIndex];
-    final typeColor = _cardTypeColor(card.type);
-    final typeLabel = _cardTypeLabel(card.type);
-
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -85,63 +36,43 @@ class HwatooCardWidget extends StatelessWidget {
             ? (Matrix4.identity()..translate(0.0, -8.0))
             : Matrix4.identity(),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF8E1),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: highlighted
                 ? const Color(0xFFFF9800)
                 : selected
                     ? const Color(0xFF2196F3)
-                    : const Color(0xFFBCAAA4),
-            width: highlighted || selected ? 2.5 : 1.5,
+                    : Colors.transparent,
+            width: highlighted || selected ? 2.5 : 0,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: Colors.blue.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              monthLabel,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Colors.brown.shade800,
+          boxShadow: [
+            if (selected)
+              BoxShadow(
+                color: Colors.blue.withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            else if (highlighted)
+              BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            else
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 3,
+                offset: const Offset(1, 2),
               ),
-            ),
-            const SizedBox(height: 2),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(
-                color: typeColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: Text(
-                typeLabel,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: typeColor.withValues(alpha: 1.0),
-                ),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              card.name,
-              style: TextStyle(
-                fontSize: 8,
-                color: Colors.brown.shade600,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: CustomPaint(
+            size: Size(width, height),
+            painter:
+                faceDown ? CardBackPainter() : HwatooCardPainter(card: card),
+          ),
         ),
       ),
     );
@@ -178,7 +109,7 @@ class CardRow extends StatelessWidget {
     }
 
     return SizedBox(
-      height: cardHeight + 8, // 선택 시 위로 올라가는 여유
+      height: cardHeight + 8,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -194,7 +125,8 @@ class CardRow extends StatelessWidget {
                   faceDown: faceDown,
                   selected: cards[i] == selectedCard,
                   highlighted: highlightedCards.contains(cards[i]),
-                  onTap: onCardTap != null ? () => onCardTap!(cards[i]) : null,
+                  onTap:
+                      onCardTap != null ? () => onCardTap!(cards[i]) : null,
                   width: cardWidth,
                   height: cardHeight,
                 ),
