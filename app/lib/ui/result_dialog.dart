@@ -3,41 +3,32 @@ import 'package:flutter/material.dart';
 
 /// 게임 결과 다이얼로그
 class ResultDialog extends StatelessWidget {
-  final GameState gameState;
+  final GameResult result;
   final VoidCallback onNewGame;
   final VoidCallback onBackToLobby;
 
   const ResultDialog({
     super.key,
-    required this.gameState,
+    required this.result,
     required this.onNewGame,
     required this.onBackToLobby,
   });
 
   @override
   Widget build(BuildContext context) {
-    final winner = gameState.winner;
+    final winner = result.winner;
     final isPlayerWin = winner == 0;
     final isDraw = winner == null;
 
-    final playerScore = Scoring.totalScore(gameState.capturedCards[0]);
-    final aiScore = Scoring.totalScore(gameState.capturedCards[1]);
-    final playerDetails = Scoring.calculate(gameState.capturedCards[0]);
-    final aiDetails = Scoring.calculate(gameState.capturedCards[1]);
+    final playerScore = result.baseScores[0];
+    final aiScore = result.baseScores[1];
+    final playerDetails = result.scoreDetails[0];
+    final aiDetails = result.scoreDetails[1];
+    final multiplier = result.multiplierResult;
 
-    // 배수 계산
-    MultiplierResult? multiplier;
-    if (!isDraw && winner != null) {
-      final winnerIdx = winner;
-      final loserIdx = winnerIdx == 0 ? 1 : 0;
-      multiplier = Multiplier.calculate(
-        winnerCaptured: gameState.capturedCards[winnerIdx],
-        loserCaptured: gameState.capturedCards[loserIdx],
-        winnerGoCount: gameState.goCount[winnerIdx],
-        loserGoCount: gameState.goCount[loserIdx],
-        winnerHadSwing: false,
-      );
-    }
+    // 최종 점수 (배수 적용)
+    final playerFinal = result.finalScores[0];
+    final aiFinal = result.finalScores[1];
 
     return AlertDialog(
       backgroundColor: const Color(0xFF2D2D2D),
@@ -66,12 +57,12 @@ class ResultDialog extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _ScoreColumn('나', playerScore, playerDetails, isPlayerWin),
+              _ScoreColumn('나', playerScore, playerFinal, playerDetails, isPlayerWin),
               const Text(
                 'vs',
                 style: TextStyle(color: Colors.white38, fontSize: 16),
               ),
-              _ScoreColumn('AI', aiScore, aiDetails, !isPlayerWin && !isDraw),
+              _ScoreColumn('AI', aiScore, aiFinal, aiDetails, !isPlayerWin && !isDraw),
             ],
           ),
           // 배수 정보
@@ -80,7 +71,7 @@ class ResultDialog extends StatelessWidget {
             const Divider(color: Colors.white24),
             const SizedBox(height: 8),
             Text(
-              '배수: ×${multiplier.multiplier}',
+              '배수: x${multiplier.multiplier}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -104,10 +95,10 @@ class ResultDialog extends StatelessWidget {
             ),
           ],
           // 고 보너스
-          if (winner != null && gameState.goCount[winner] > 0) ...[
+          if (result.goBonus > 0) ...[
             const SizedBox(height: 8),
             Text(
-              '고 보너스: +${Multiplier.goBonus(gameState.goCount[winner])}점',
+              '고 보너스: +${result.goBonus}점',
               style: const TextStyle(color: Colors.greenAccent, fontSize: 14),
             ),
           ],
@@ -143,11 +134,12 @@ class ResultDialog extends StatelessWidget {
 
 class _ScoreColumn extends StatelessWidget {
   final String label;
-  final int score;
+  final int baseScore;
+  final int finalScore;
   final List<ScoringResult> details;
   final bool isWinner;
 
-  const _ScoreColumn(this.label, this.score, this.details, this.isWinner);
+  const _ScoreColumn(this.label, this.baseScore, this.finalScore, this.details, this.isWinner);
 
   @override
   Widget build(BuildContext context) {
@@ -163,13 +155,18 @@ class _ScoreColumn extends StatelessWidget {
           ),
         ),
         Text(
-          '${score}점',
+          '${finalScore}점',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
             color: isWinner ? Colors.amber : Colors.white70,
           ),
         ),
+        if (finalScore != baseScore)
+          Text(
+            '(기본 ${baseScore}점)',
+            style: const TextStyle(fontSize: 11, color: Colors.white38),
+          ),
         const SizedBox(height: 4),
         for (final d in details)
           Text(

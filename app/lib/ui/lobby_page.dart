@@ -1,3 +1,4 @@
+import 'package:engine/engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +11,9 @@ class LobbyPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final uiState = ref.watch(gameProvider);
+    final difficulty = uiState.difficulty;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D1F0D),
       body: Center(
@@ -34,7 +38,50 @@ class LobbyPage extends ConsumerWidget {
                 color: Colors.white.withValues(alpha: 0.5),
               ),
             ),
-            const SizedBox(height: 60),
+            const SizedBox(height: 40),
+
+            // 난이도 선택
+            Text(
+              'AI 난이도',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<AiDifficulty>(
+              segments: const [
+                ButtonSegment(
+                  value: AiDifficulty.easy,
+                  label: Text('쉬움'),
+                  icon: Icon(Icons.sentiment_satisfied, size: 18),
+                ),
+                ButtonSegment(
+                  value: AiDifficulty.normal,
+                  label: Text('보통'),
+                  icon: Icon(Icons.sentiment_neutral, size: 18),
+                ),
+                ButtonSegment(
+                  value: AiDifficulty.hard,
+                  label: Text('어려움'),
+                  icon: Icon(Icons.sentiment_very_dissatisfied, size: 18),
+                ),
+              ],
+              selected: {difficulty},
+              onSelectionChanged: (selected) {
+                ref.read(gameProvider.notifier).setDifficulty(selected.first);
+              },
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return const Color(0xFF2E7D32);
+                  }
+                  return Colors.transparent;
+                }),
+              ),
+            ),
+
+            const SizedBox(height: 32),
 
             // AI 대전 버튼
             SizedBox(
@@ -104,7 +151,7 @@ class LobbyPage extends ConsumerWidget {
             const SizedBox(height: 80),
 
             Text(
-              'v0.1.0 — Phase 1',
+              'v0.2.0 — Phase 2',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withValues(alpha: 0.3),

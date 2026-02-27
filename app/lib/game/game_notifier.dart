@@ -19,12 +19,20 @@ class GameUiState {
   /// 마지막 이벤트 메시지 (UI 표시용)
   final String? message;
 
+  /// 게임 결과 (종료 시)
+  final GameResult? result;
+
+  /// AI 난이도
+  final AiDifficulty difficulty;
+
   const GameUiState({
     required this.gameState,
     this.aiThinking = false,
     this.pendingMatchChoices = const [],
     this.pendingCaptureChoices = const [],
     this.message,
+    this.result,
+    this.difficulty = AiDifficulty.normal,
   });
 
   GameUiState copyWith({
@@ -33,6 +41,8 @@ class GameUiState {
     List<HwatooCard>? pendingMatchChoices,
     List<HwatooCard>? pendingCaptureChoices,
     String? message,
+    GameResult? result,
+    AiDifficulty? difficulty,
   }) {
     return GameUiState(
       gameState: gameState ?? this.gameState,
@@ -41,6 +51,8 @@ class GameUiState {
       pendingCaptureChoices:
           pendingCaptureChoices ?? this.pendingCaptureChoices,
       message: message,
+      result: result,
+      difficulty: difficulty ?? this.difficulty,
     );
   }
 
@@ -57,13 +69,19 @@ class GameUiState {
 
 /// 게임 컨트롤러 (Riverpod Notifier)
 class GameNotifier extends Notifier<GameUiState> {
-  final _ai = RandomAgent();
+  Agent _ai = HeuristicAgent();
 
   @override
   GameUiState build() {
     return GameUiState(
       gameState: GameState.newGame(playerCount: 2),
     );
+  }
+
+  /// AI 난이도 변경
+  void setDifficulty(AiDifficulty difficulty) {
+    _ai = HeuristicAgent(difficulty: difficulty);
+    state = state.copyWith(difficulty: difficulty);
   }
 
   /// 새 게임 시작
@@ -73,7 +91,10 @@ class GameNotifier extends Notifier<GameUiState> {
         playerCount: 2,
         random: Random(),
       ),
+      difficulty: state.difficulty,
     );
+    // 난이도 유지
+    _ai = HeuristicAgent(difficulty: state.difficulty);
   }
 
   /// 플레이어가 손패에서 카드를 냄
@@ -151,8 +172,10 @@ class GameNotifier extends Notifier<GameUiState> {
     }
 
     if (gs.phase == GamePhase.end) {
+      final result = GameResult.fromState(gs);
       state = state.copyWith(
         gameState: gs,
+        result: result,
         message: _endMessage(gs),
       );
       return;
@@ -190,8 +213,10 @@ class GameNotifier extends Notifier<GameUiState> {
   void chooseStop() {
     if (state.gameState.phase != GamePhase.goStop) return;
     var gs = state.gameState.chooseStop();
+    final result = GameResult.fromState(gs);
     state = state.copyWith(
       gameState: gs,
+      result: result,
       message: _endMessage(gs),
     );
   }
@@ -220,9 +245,11 @@ class GameNotifier extends Notifier<GameUiState> {
     }
 
     if (gs.phase == GamePhase.end) {
+      final result = GameResult.fromState(gs);
       state = state.copyWith(
         gameState: gs,
         aiThinking: false,
+        result: result,
         message: _endMessage(gs),
       );
     } else {

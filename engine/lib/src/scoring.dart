@@ -1,4 +1,5 @@
 import 'card.dart';
+import 'game_config.dart';
 
 /// 점수 계산 결과 1건
 class ScoringResult {
@@ -98,8 +99,8 @@ abstract final class Scoring {
     final hasCup = cards.contains(Cards.cup);
     var totalJunk = junkCount + doubleJunkCount * 2;
 
-    // 국진 전환: 피가 충분하면 동물에서 쌍피로 이동
-    if (hasCup && totalJunk >= 9) {
+    // 국진 전환: 피 + 국진(2) ≥ 10이면 쌍피로 전환
+    if (hasCup && totalJunk + 2 >= 10) {
       totalJunk += 2; // CUP counts as 2 junk
     }
 
@@ -111,8 +112,9 @@ abstract final class Scoring {
   }
 
   /// 모든 족보를 계산하여 결과 목록 반환
-  static List<ScoringResult> calculate(List<HwatooCard> cards) {
+  static List<ScoringResult> calculate(List<HwatooCard> cards, {GameConfig? config}) {
     final results = <ScoringResult>[];
+    final cfg = config ?? GameConfig.standard;
 
     final bright = calculateBrights(cards);
     if (bright != null) results.add(bright);
@@ -120,8 +122,10 @@ abstract final class Scoring {
     final animal = calculateAnimals(cards);
     if (animal != null) results.add(animal);
 
-    final godori = calculateGodori(cards);
-    if (godori != null) results.add(godori);
+    if (cfg.useGodori) {
+      final godori = calculateGodori(cards);
+      if (godori != null) results.add(godori);
+    }
 
     final ribbon = calculateRibbons(cards);
     if (ribbon != null) results.add(ribbon);
@@ -142,7 +146,7 @@ abstract final class Scoring {
   }
 
   /// 총점 합산
-  static int totalScore(List<HwatooCard> cards) {
-    return calculate(cards).fold(0, (sum, r) => sum + r.points);
+  static int totalScore(List<HwatooCard> cards, {GameConfig? config}) {
+    return calculate(cards, config: config).fold(0, (sum, r) => sum + r.points);
   }
 }

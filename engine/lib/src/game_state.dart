@@ -40,7 +40,7 @@ class GameState {
   final Deck _deck;
   final HwatooCard? _drawnCard;
   final HwatooCard? _playedCard;
-  final HwatooCard? _matchedTableCard;
+  final List<HwatooCard> _playMatchedCards;
 
   int get deckSize => _deck.length;
   HwatooCard? get drawnCard => _drawnCard;
@@ -59,12 +59,12 @@ class GameState {
     this.winner,
     HwatooCard? drawnCard,
     HwatooCard? playedCard,
-    HwatooCard? matchedTableCard,
+    List<HwatooCard>? playMatchedCards,
   })  : _deck = deck,
         sweepCount = sweepCount ?? List.filled(playerCount, 0),
         _drawnCard = drawnCard,
         _playedCard = playedCard,
-        _matchedTableCard = matchedTableCard;
+        _playMatchedCards = playMatchedCards ?? const [];
 
   /// 새 게임 생성 및 카드 배분
   factory GameState.newGame({
@@ -118,7 +118,7 @@ class GameState {
     int? winner,
     HwatooCard? drawnCard,
     HwatooCard? playedCard,
-    HwatooCard? matchedTableCard,
+    List<HwatooCard>? playMatchedCards,
   }) {
     return GameState._(
       playerCount: playerCount,
@@ -134,7 +134,7 @@ class GameState {
       winner: winner ?? this.winner,
       drawnCard: drawnCard ?? _drawnCard,
       playedCard: playedCard ?? _playedCard,
-      matchedTableCard: matchedTableCard ?? _matchedTableCard,
+      playMatchedCards: playMatchedCards ?? _playMatchedCards,
     );
   }
 
@@ -152,22 +152,25 @@ class GameState {
     final newTable = tableCards.copy();
     final matchResult = MatchResult.from(card, newTable);
 
-    HwatooCard? matchedCard;
+    final List<HwatooCard> matchedCards;
     switch (matchResult.type) {
       case MatchType.noMatch:
         newTable.add(card);
+        matchedCards = const [];
       case MatchType.singleMatch:
-        matchedCard = matchResult.candidates.first;
-        newTable.remove(matchedCard);
+        final matched = matchResult.candidates.first;
+        newTable.remove(matched);
+        matchedCards = [matched];
       case MatchType.doubleMatch:
-        matchedCard = chosenMatch ?? matchResult.candidates.first;
-        newTable.remove(matchedCard);
+        final matched = chosenMatch ?? matchResult.candidates.first;
+        newTable.remove(matched);
+        matchedCards = [matched];
       case MatchType.tripleMatch:
         // 3장 전부 테이블에서 제거 (뻑)
-        matchedCard = matchResult.candidates.first;
         for (final c in matchResult.candidates) {
           newTable.remove(c);
         }
+        matchedCards = List<HwatooCard>.from(matchResult.candidates);
     }
 
     // 덱에서 카드 뽑기
@@ -179,7 +182,7 @@ class GameState {
       tableCards: newTable,
       drawnCard: drawn,
       playedCard: card,
-      matchedTableCard: matchedCard,
+      playMatchedCards: matchedCards,
     );
   }
 
@@ -195,20 +198,9 @@ class GameState {
     final drawnMatchResult = MatchResult.from(_drawnCard!, newTable);
 
     // 이전 Play Phase에서 매칭된 카드 획득
-    if (_matchedTableCard != null) {
+    if (_playMatchedCards.isNotEmpty) {
       newCaptured[currentPlayer].add(_playedCard!);
-      newCaptured[currentPlayer].add(_matchedTableCard!);
-      // tripleMatch인 경우 나머지 카드도 추가
-      if (_playedCard != null) {
-        final originalMatch = MatchResult.from(_playedCard!, tableCards);
-        if (originalMatch.type == MatchType.tripleMatch) {
-          for (final c in originalMatch.candidates.skip(1)) {
-            if (c != _matchedTableCard) {
-              newCaptured[currentPlayer].add(c);
-            }
-          }
-        }
-      }
+      newCaptured[currentPlayer].addAll(_playMatchedCards);
     }
 
     // 덱 카드 매칭 처리
@@ -235,6 +227,27 @@ class GameState {
         }
     }
 
+    // 쓸(sweep) 감지: 카드를 획득했는데 테이블이 비었으면 쓸
+    final newSweepCount = List<int>.from(sweepCount);
+    final didCapture = _playMatchedCards.isNotEmpty ||
+        drawnMatchResult.type != MatchType.noMatch;
+    if (config.useSweep && didCapture && newTable.cards.isEmpty) {
+      newSweepCount[currentPlayer]++;
+      // 피 뺏기: 상대에게서 피 1장씩 빼앗음
+      if (config.usePiSteal) {
+        for (var p = 0; p < playerCount; p++) {
+          if (p == currentPlayer) continue;
+          final opponentJunkIdx = newCaptured[p].lastIndexWhere(
+            (c) => c.type == CardType.junk || c.type == CardType.doubleJunk,
+          );
+          if (opponentJunkIdx >= 0) {
+            final stolen = newCaptured[p].removeAt(opponentJunkIdx);
+            newCaptured[currentPlayer].add(stolen);
+          }
+        }
+      }
+    }
+
     // 점수 체크
     final score = Scoring.totalScore(newCaptured[currentPlayer]);
     if (score >= config.scoreThreshold) {
@@ -242,6 +255,7 @@ class GameState {
         phase: GamePhase.goStop,
         capturedCards: newCaptured,
         tableCards: newTable,
+        sweepCount: newSweepCount,
       );
     }
 
@@ -254,6 +268,7 @@ class GameState {
         phase: GamePhase.end,
         capturedCards: newCaptured,
         tableCards: newTable,
+        sweepCount: newSweepCount,
       );
     }
 
@@ -262,6 +277,7 @@ class GameState {
       currentPlayer: nextPlayer,
       capturedCards: newCaptured,
       tableCards: newTable,
+      sweepCount: newSweepCount,
     );
   }
 

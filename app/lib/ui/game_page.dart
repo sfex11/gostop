@@ -26,10 +26,10 @@ class _GamePageState extends ConsumerState<GamePage> {
     final notifier = ref.read(gameProvider.notifier);
 
     // 게임 종료 시 결과 다이얼로그
-    if (uiState.isGameOver && !_resultShown) {
+    if (uiState.isGameOver && !_resultShown && uiState.result != null) {
       _resultShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showResult(context, gs, notifier);
+        _showResult(context, uiState.result!, notifier);
       });
     }
 
@@ -229,12 +229,12 @@ class _GamePageState extends ConsumerState<GamePage> {
   }
 
   void _showResult(
-      BuildContext context, GameState gs, GameNotifier notifier) {
+      BuildContext context, GameResult result, GameNotifier notifier) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => ResultDialog(
-        gameState: gs,
+        result: result,
         onNewGame: () {
           Navigator.of(context).pop();
           _resultShown = false;
