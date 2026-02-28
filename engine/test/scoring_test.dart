@@ -211,6 +211,27 @@ void main() {
       // 9 junk alone < 10, but with cup conversion: 9 + 2 = 11 -> 2 points
       expect(result!.points, 2);
     });
+
+    test('cup converts when 8 junk + cup reaches 10', () {
+      // 8 regular junk + cup(2) = 10 -> 1 point
+      final cards = <HwatooCard>[
+        ...Cards.all.where((c) => c.type == CardType.junk).take(8),
+        Cards.cup,
+      ];
+      final result = Scoring.calculateJunk(cards);
+      expect(result, isNotNull);
+      expect(result!.points, 1);
+    });
+
+    test('cup does not convert when 7 junk', () {
+      // 7 regular junk + cup(2) = 9 < 10 -> no score
+      final cards = <HwatooCard>[
+        ...Cards.all.where((c) => c.type == CardType.junk).take(7),
+        Cards.cup,
+      ];
+      final result = Scoring.calculateJunk(cards);
+      expect(result, isNull);
+    });
   });
 
   group('Scoring - Total score', () {

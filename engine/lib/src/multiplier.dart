@@ -1,4 +1,5 @@
 import 'card.dart';
+import 'game_config.dart';
 
 /// 배수 종류
 enum MultiplierType {
@@ -37,40 +38,48 @@ abstract final class Multiplier {
     required int winnerGoCount,
     required int loserGoCount,
     required bool winnerHadSwing,
+    GameConfig? config,
   }) {
     final reasons = <MultiplierType>[];
+    final cfg = config ?? GameConfig.standard;
 
     // 피박: 진 쪽 피 ≤ 5장 (junk + doubleJunk*2)
-    final loserJunk = loserCaptured.where((c) => c.type == CardType.junk).length;
-    final loserDoubleJunk =
-        loserCaptured.where((c) => c.type == CardType.doubleJunk).length;
-    final loserTotalJunk = loserJunk + loserDoubleJunk * 2;
-    if (loserTotalJunk <= 5) {
-      reasons.add(MultiplierType.piBak);
+    if (cfg.usePiBak) {
+      final loserJunk = loserCaptured.where((c) => c.type == CardType.junk).length;
+      final loserDoubleJunk =
+          loserCaptured.where((c) => c.type == CardType.doubleJunk).length;
+      final loserTotalJunk = loserJunk + loserDoubleJunk * 2;
+      if (loserTotalJunk <= 5) {
+        reasons.add(MultiplierType.piBak);
+      }
     }
 
     // 광박: 진 쪽 광 0장
-    final loserBrights =
-        loserCaptured.where((c) => c.type == CardType.bright).length;
-    if (loserBrights == 0) {
-      reasons.add(MultiplierType.gwangBak);
+    if (cfg.useGwangBak) {
+      final loserBrights =
+          loserCaptured.where((c) => c.type == CardType.bright).length;
+      if (loserBrights == 0) {
+        reasons.add(MultiplierType.gwangBak);
+      }
     }
 
     // 고박: 진 쪽이 고 선언한 적 있음
-    if (loserGoCount > 0) {
+    if (cfg.useGoBak && loserGoCount > 0) {
       reasons.add(MultiplierType.goBak);
     }
 
     // 흔들기
-    if (winnerHadSwing) {
+    if (cfg.useSwing && winnerHadSwing) {
       reasons.add(MultiplierType.swing);
     }
 
     // 멍따: 이긴 쪽 동물 ≥ 7장
-    final winnerAnimals =
-        winnerCaptured.where((c) => c.type == CardType.animal).length;
-    if (winnerAnimals >= 7) {
-      reasons.add(MultiplierType.mungTung);
+    if (cfg.useMungTung) {
+      final winnerAnimals =
+          winnerCaptured.where((c) => c.type == CardType.animal).length;
+      if (winnerAnimals >= 7) {
+        reasons.add(MultiplierType.mungTung);
+      }
     }
 
     return MultiplierResult(reasons);

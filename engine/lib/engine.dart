@@ -5,6 +5,7 @@ export 'src/agent.dart';
 export 'src/card.dart';
 export 'src/deck.dart';
 export 'src/game_config.dart';
+export 'src/game_result.dart';
 export 'src/game_state.dart';
 export 'src/hand_checker.dart';
 export 'src/matching.dart';
