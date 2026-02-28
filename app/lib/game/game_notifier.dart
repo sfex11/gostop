@@ -173,25 +173,40 @@ class GameNotifier extends Notifier<GameUiState> {
 
     var gs = state.gameState.playCard(card, chosenMatch: chosenMatch);
 
-    // 캡처 페이즈: 덱에서 뒤집은 카드 처리
+    // 폭탄(따닥) 감지: 낸 카드와 뒤집힌 카드가 같은 월
     final drawn = gs.drawnCard;
+    final isBomb = drawn != null && drawn.month == card.month;
+
+    // 캡처 페이즈: 덱에서 뒤집은 카드 처리
     if (drawn != null) {
       final captureMatches = gs.tableCards.findMatches(drawn);
       if (captureMatches.length == 2) {
         // 캡처에서도 2장 매칭 — 선택 대기
+        final specialEvent = isTriple
+            ? GameEvent.tripleMatch
+            : isBomb
+                ? GameEvent.bomb
+                : GameEvent.none;
         state = state.copyWith(
           gameState: gs,
           pendingCaptureChoices: captureMatches,
           message: '뒤집힌 카드(${_cardLabel(drawn)})를 매칭하세요',
-          event: isTriple ? GameEvent.tripleMatch : GameEvent.none,
+          event: specialEvent,
         );
         return;
       }
     }
 
+    // 이벤트 결정: 뻑 > 폭탄
+    final specialEvent = isTriple
+        ? GameEvent.tripleMatch
+        : isBomb
+            ? GameEvent.bomb
+            : null;
+
     // 자동 캡처 해결
     gs = gs.resolveCapture();
-    _afterCapture(gs, extraEvent: isTriple ? GameEvent.tripleMatch : null);
+    _afterCapture(gs, extraEvent: specialEvent);
   }
 
   /// 캡처 2장 매칭 선택 완료

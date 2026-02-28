@@ -311,9 +311,24 @@ class OnlineGameNotifier extends Notifier<OnlineGameUiState> {
 
     if (card == null) return;
 
+    // 뻑(3장 매칭) 감지
+    final preMatches = gs.tableCards.findMatches(card);
+    final isTriple = preMatches.length == 3;
+
     var newGs = gs.playCard(card, chosenMatch: chosenMatch);
+
+    // 폭탄(따닥) 감지
+    final drawn = newGs.drawnCard;
+    final isBomb = drawn != null && drawn.month == card.month;
+
     newGs = newGs.resolveCapture(chosenMatch: chosenMatch);
-    _updateGameState(newGs);
+
+    final specialEvent = isTriple
+        ? GameEvent.tripleMatch
+        : isBomb
+            ? GameEvent.bomb
+            : null;
+    _updateGameState(newGs, extraEvent: specialEvent);
   }
 
   void _handleSelectMatch(GameMessage msg) {
@@ -363,12 +378,17 @@ class OnlineGameNotifier extends Notifier<OnlineGameUiState> {
     );
   }
 
-  void _updateGameState(GameState gs) {
+  void _updateGameState(GameState gs, {GameEvent? extraEvent}) {
     // 쓸 감지
     final prevSweep =
         state.gameUiState.gameState.sweepCount[gs.currentPlayer - 1 < 0 ? 1 : 0];
     final curSweep = gs.sweepCount.isNotEmpty ? gs.sweepCount[0] : 0;
     final isSweep = curSweep > prevSweep;
+
+    // 이벤트 우선순위: sweep > extraEvent(뻑/폭탄)
+    final event = isSweep
+        ? GameEvent.sweep
+        : extraEvent ?? GameEvent.none;
 
     if (gs.phase == GamePhase.end) {
       final result = GameResult.fromState(gs);
@@ -377,7 +397,7 @@ class OnlineGameNotifier extends Notifier<OnlineGameUiState> {
           gameState: gs,
           result: result,
           message: _endMessage(gs),
-          event: isSweep ? GameEvent.sweep : GameEvent.none,
+          event: event,
         ),
       );
       return;
@@ -386,11 +406,13 @@ class OnlineGameNotifier extends Notifier<OnlineGameUiState> {
     if (gs.phase == GamePhase.goStop &&
         gs.currentPlayer == state.myPlayerIndex) {
       final score = Scoring.totalScore(gs.capturedCards[state.myPlayerIndex]);
+      final goCount = gs.goCount[state.myPlayerIndex];
+      final multiplier = goCount > 0 ? ' (×${goCount + 1})' : '';
       state = state.copyWith(
         gameUiState: state.gameUiState.copyWith(
           gameState: gs,
-          message: '${score}점! 고 하시겠습니까?',
-          event: isSweep ? GameEvent.sweep : GameEvent.none,
+          message: '${score}점$multiplier! 고 하시겠습니까?',
+          event: event,
         ),
       );
       return;
@@ -402,7 +424,7 @@ class OnlineGameNotifier extends Notifier<OnlineGameUiState> {
         message: gs.currentPlayer == state.myPlayerIndex
             ? null
             : '상대 턴...',
-        event: isSweep ? GameEvent.sweep : GameEvent.none,
+        event: event,
       ),
     );
   }
@@ -450,6 +472,11 @@ class OnlineGameNotifier extends Notifier<OnlineGameUiState> {
   void _executePlayAndSend(HwatooCard card, {HwatooCard? chosenMatch}) {
     _turnCounter++;
 
+    // 뻑(3장 매칭) 감지
+    final preTable = state.gameUiState.gameState.tableCards;
+    final preMatches = preTable.findMatches(card);
+    final isTriple = preMatches.length == 3;
+
     // 네트워크 메시지 전송
     final msg = GameMessage.playCard(
       turn: _turnCounter,
@@ -463,24 +490,40 @@ class OnlineGameNotifier extends Notifier<OnlineGameUiState> {
     // 로컬 상태 업데이트
     var gs = state.gameUiState.gameState.playCard(card, chosenMatch: chosenMatch);
 
-    // 캡처
+    // 폭탄(따닥) 감지: 낸 카드와 뒤집힌 카드가 같은 월
     final drawn = gs.drawnCard;
+    final isBomb = drawn != null && drawn.month == card.month;
+
+    // 캡처
     if (drawn != null) {
       final captureMatches = gs.tableCards.findMatches(drawn);
       if (captureMatches.length == 2) {
+        final specialEvent = isTriple
+            ? GameEvent.tripleMatch
+            : isBomb
+                ? GameEvent.bomb
+                : GameEvent.none;
         state = state.copyWith(
           gameUiState: state.gameUiState.copyWith(
             gameState: gs,
             pendingCaptureChoices: captureMatches,
-            message: '뒤집힌 카드(${drawn.name})로 가져갈 카드를 선택하세요',
+            message: '뒤집힌 카드(${drawn.name})를 매칭하세요',
+            event: specialEvent,
           ),
         );
         return;
       }
     }
 
+    // 이벤트 결정: 뻑 > 폭탄
+    final specialEvent = isTriple
+        ? GameEvent.tripleMatch
+        : isBomb
+            ? GameEvent.bomb
+            : null;
+
     gs = gs.resolveCapture();
-    _updateGameState(gs);
+    _updateGameState(gs, extraEvent: specialEvent);
   }
 
   /// 캡처 2장 매칭 선택
