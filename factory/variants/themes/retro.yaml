@@ -7,6 +7,6 @@ description_en: "8-bit retro pixel style Gostop"
 
 card_style: simple
 background: dark_pixel       # 어두운 픽셀 배경
-seed_color: "0xFF FF6F00"    # 오렌지
+seed_color: "0xFFFF6F00"    # 오렌지
 font: "DungGeunMo"
 icon_style: pixel            # 픽셀 아이콘
