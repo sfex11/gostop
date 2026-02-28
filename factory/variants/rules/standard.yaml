@@ -1,0 +1,20 @@
+# 정통 서울 표준룰
+id: standard
+name_ko: "정통"
+name_en: "Standard"
+description_ko: "서울 표준 규칙 고스톱"
+description_en: "Seoul standard rules"
+
+score_threshold: 3
+use_ssangpi: true
+use_bomb: true
+use_swing: true
+use_chongtong: true
+use_pi_steal: true
+use_sweep: true
+use_gwang_bak: true
+use_pi_bak: true
+use_go_bak: true
+use_mung_tung: true
+use_godori: true
+speed_multiplier: 1.0

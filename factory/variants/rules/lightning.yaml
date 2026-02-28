@@ -1,0 +1,20 @@
+# 번개 — 초고속 게임
+id: lightning
+name_ko: "번개"
+name_en: "Lightning"
+description_ko: "번개처럼 빠른 초고속 고스톱"
+description_en: "Ultra-fast lightning Gostop"
+
+score_threshold: 3
+use_ssangpi: true
+use_bomb: true
+use_swing: false
+use_chongtong: false
+use_pi_steal: false
+use_sweep: true
+use_gwang_bak: false
+use_pi_bak: false
+use_go_bak: false
+use_mung_tung: false
+use_godori: false
+speed_multiplier: 2.0

@@ -1,0 +1,12 @@
+# 전통 테마 — 한국 전통 문양
+id: traditional
+name_ko: "전통 고스톱"
+name_en: "Traditional Gostop"
+description_ko: "한국 전통 문양과 색감의 고스톱"
+description_en: "Korean traditional pattern Gostop"
+
+card_style: classic
+background: hanbok_pattern   # 한복 문양 배경
+seed_color: "0xFFC62828"     # 진한 빨강
+font: "NanumMyeongjo"
+icon_style: dancheong        # 단청 문양 아이콘

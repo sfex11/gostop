@@ -1,0 +1,139 @@
+name: Daily App Generate
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 00:00 UTC
+  workflow_dispatch:       # 수동 실행 가능
+    inputs:
+      theme:
+        description: '특정 테마 (비우면 자동 선택)'
+        required: false
+      rule:
+        description: '특정 룰 (비우면 자동 선택)'
+        required: false
+      ai:
+        description: '특정 AI (비우면 자동 선택)'
+        required: false
+      limit:
+        description: '생성 개수 (기본: 1)'
+        required: false
+        default: '1'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python 환경 세팅
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python deps
+        run: pip install pyyaml
+
+      # Step 1: Idea Agent — Config 선택/생성
+      - name: Idea Agent - Select Config
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cd factory
+          ARGS=""
+          if [ -n "${{ inputs.theme }}" ]; then ARGS="$ARGS --theme ${{ inputs.theme }}"; fi
+          if [ -n "${{ inputs.rule }}" ]; then ARGS="$ARGS --rule ${{ inputs.rule }}"; fi
+          if [ -n "${{ inputs.ai }}" ]; then ARGS="$ARGS --ai ${{ inputs.ai }}"; fi
+          LIMIT="${{ inputs.limit }}"
+          LIMIT=${LIMIT:-1}
+          python generator/generate_configs.py $ARGS --limit $LIMIT
+
+      # Step 2: Asset Agent — 이미지 생성 (선택)
+      - name: Asset Agent - Generate Images
+        if: ${{ secrets.STABILITY_API_KEY != '' }}
+        env:
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
+        run: |
+          if [ -f factory/generator/asset_agent.py ]; then
+            python factory/generator/asset_agent.py
+          fi
+        continue-on-error: true
+
+      # Step 3: Code Agent — Flutter 프로젝트 생성
+      - name: Code Agent - Generate App
+        run: |
+          cd factory
+          python generator/generate_app.py --latest
+
+      # Step 4: Flutter 빌드
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: stable
+
+      - name: Build AAB (Google Play)
+        run: |
+          LATEST=$(ls -td factory/apps/*/ | head -1)
+          if [ -d "$LATEST/app" ]; then
+            cd "$LATEST/app"
+            flutter pub get
+            flutter build appbundle --release
+          fi
+        continue-on-error: true
+
+      - name: Build Web (PWA)
+        run: |
+          LATEST=$(ls -td factory/apps/*/ | head -1)
+          if [ -d "$LATEST/app" ]; then
+            cd "$LATEST/app"
+            flutter build web --release
+          fi
+        continue-on-error: true
+
+      # Step 5: Publish
+      - name: Publish to Google Play
+        if: ${{ secrets.PLAY_SERVICE_ACCOUNT != '' }}
+        env:
+          PLAY_SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT }}
+        run: |
+          if [ -f factory/publisher/playstore_upload.py ]; then
+            python factory/publisher/playstore_upload.py
+          fi
+        continue-on-error: true
+
+      - name: Deploy PWA to Firebase
+        if: ${{ secrets.FIREBASE_TOKEN != '' }}
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -f factory/publisher/pwa_deploy.sh ]; then
+            bash factory/publisher/pwa_deploy.sh
+          fi
+        continue-on-error: true
+
+      # Step 6: 알림
+      - name: Notify
+        if: ${{ secrets.DISCORD_WEBHOOK != '' }}
+        run: |
+          LATEST=$(ls -td factory/apps/*/ | head -1)
+          META=$(cat "$LATEST/metadata.json" 2>/dev/null || echo '{}')
+          NAME=$(echo $META | python3 -c "import sys,json; print(json.load(sys.stdin).get('name_ko','unknown'))" 2>/dev/null || echo "unknown")
+          curl -s -X POST "${{ secrets.DISCORD_WEBHOOK }}" \
+            -H 'Content-Type: application/json' \
+            -d "{\"content\": \"🎴 새 앱 생성 완료: $NAME\"}"
+        continue-on-error: true
+
+      # 빌드 아티팩트 업로드
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-app
+          path: |
+            factory/apps/*/metadata.json
+            factory/apps/*/app/build/app/outputs/bundle/release/*.aab
+            factory/apps/*/app/build/web/
+          retention-days: 30

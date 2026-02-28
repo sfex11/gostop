@@ -1,0 +1,12 @@
+# 클래식 테마 — 전통 화투 느낌
+id: classic
+name_ko: "클래식 고스톱"
+name_en: "Classic Gostop"
+description_ko: "전통 화투 디자인의 정통 고스톱"
+description_en: "Authentic Gostop with traditional Hwatu design"
+
+card_style: classic          # assets/cards/classic/
+background: dark_green       # 진한 녹색 테이블
+seed_color: "0xFF2E7D32"     # Material seed color
+font: "NanumMyeongjo"
+icon_style: traditional      # 전통 화투 문양 아이콘

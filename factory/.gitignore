@@ -1,0 +1,17 @@
+# 생성된 앱 (대용량, 빌드 아티팩트)
+apps/
+
+# 생성된 Config (필요시 재생성 가능)
+configs/*.yaml
+!configs/.gitkeep
+
+# Analytics 리포트 (런타임 생성)
+analytics/*.json
+!analytics/.gitkeep
+
+# 임시 선택 파일
+configs/_next_selection.json
+
+# Python
+__pycache__/
+*.pyc

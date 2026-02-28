@@ -1,0 +1,12 @@
+# 팝아트 테마 — 앤디 워홀 스타일
+id: popart
+name_ko: "팝아트 고스톱"
+name_en: "Pop Art Gostop"
+description_ko: "팝아트 컬러풀 고스톱"
+description_en: "Colorful pop art style Gostop"
+
+card_style: simple
+background: comic_dots       # 코믹 도트 패턴
+seed_color: "0xFFFFEB3B"     # 비비드 옐로우
+font: "NanumSquare"
+icon_style: comic            # 코믹 스타일 아이콘

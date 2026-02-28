@@ -1,0 +1,12 @@
+# 미니멀 테마 — 깔끔한 모던 디자인
+id: minimal
+name_ko: "미니멀 고스톱"
+name_en: "Minimal Gostop"
+description_ko: "심플하고 깔끔한 미니멀 고스톱"
+description_en: "Clean and simple minimal Gostop"
+
+card_style: simple
+background: white_clean      # 깨끗한 흰색
+seed_color: "0xFF607D8B"     # 블루그레이
+font: "Pretendard"
+icon_style: flat             # 플랫 아이콘

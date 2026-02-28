@@ -1,0 +1,11 @@
+# Expert AI — 최고 난이도
+id: expert
+name_ko: "전문가"
+name_en: "Expert"
+description_ko: "최고 난이도 전문가 AI"
+description_en: "Expert-level AI, maximum difficulty"
+
+strategy: heuristic
+difficulty: hard     # HeuristicAgent.hard + 공격적 고
+think_time_ms: 1000
+go_aggressiveness: 0.9

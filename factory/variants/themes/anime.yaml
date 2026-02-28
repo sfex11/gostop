@@ -1,0 +1,12 @@
+# 애니 테마 — 귀여운 캐릭터 스타일
+id: anime
+name_ko: "애니 고스톱"
+name_en: "Anime Gostop"
+description_ko: "귀여운 애니메이션 스타일 카드 고스톱"
+description_en: "Cute anime-style card Gostop"
+
+card_style: simple           # assets/cards/simple/
+background: pastel_gradient  # 파스텔 그라데이션
+seed_color: "0xFFE91E63"     # 핑크 계열
+font: "NanumBarunGothic"
+icon_style: cute_rounded     # 둥근 애니 아이콘

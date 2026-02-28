@@ -1,0 +1,11 @@
+# Hard AI — 고급
+id: hard
+name_ko: "어려움"
+name_en: "Hard"
+description_ko: "숙련자를 위한 강력한 AI"
+description_en: "Challenging AI for experienced players"
+
+strategy: heuristic
+difficulty: hard     # HeuristicAgent.hard (100% optimal)
+think_time_ms: 900
+go_aggressiveness: 0.7

@@ -1,0 +1,12 @@
+# 네온 테마 — 사이버펑크 글로우
+id: neon
+name_ko: "네온 고스톱"
+name_en: "Neon Gostop"
+description_ko: "화려한 네온 사이버펑크 고스톱"
+description_en: "Vibrant neon cyberpunk Gostop"
+
+card_style: simple
+background: dark_neon        # 어두운 배경 + 네온 글로우
+seed_color: "0xFF00E5FF"     # 시안 네온
+font: "NanumSquare"
+icon_style: neon_glow        # 네온 글로우 아이콘

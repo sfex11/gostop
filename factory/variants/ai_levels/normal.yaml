@@ -1,0 +1,11 @@
+# Normal AI — 중급
+id: normal
+name_ko: "보통"
+name_en: "Normal"
+description_ko: "적당한 난이도의 AI"
+description_en: "Moderate difficulty AI"
+
+strategy: heuristic
+difficulty: normal   # HeuristicAgent.normal (80% optimal)
+think_time_ms: 700
+go_aggressiveness: 0.5

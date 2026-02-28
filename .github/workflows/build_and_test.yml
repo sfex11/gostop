@@ -1,0 +1,43 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'engine/**'
+      - 'app/**'
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Engine tests
+        run: |
+          cd engine
+          dart pub get
+          dart test
+
+  build-app:
+    runs-on: ubuntu-latest
+    needs: test-engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: stable
+
+      - name: Build APK
+        run: |
+          cd app
+          flutter pub get
+          flutter build apk --debug

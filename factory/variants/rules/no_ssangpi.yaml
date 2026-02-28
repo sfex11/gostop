@@ -1,0 +1,20 @@
+# 쌍피없음 — 쌍피/특수 규칙 최소
+id: no_ssangpi
+name_ko: "심플"
+name_en: "Simple"
+description_ko: "쌍피 없는 심플 고스톱"
+description_en: "Simple Gostop without double-junk"
+
+score_threshold: 3
+use_ssangpi: false
+use_bomb: false
+use_swing: false
+use_chongtong: false
+use_pi_steal: false
+use_sweep: true
+use_gwang_bak: true
+use_pi_bak: true
+use_go_bak: false
+use_mung_tung: false
+use_godori: true
+speed_multiplier: 1.0

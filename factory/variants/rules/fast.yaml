@@ -1,0 +1,20 @@
+# 빠른 게임 — 특수 규칙 축소
+id: fast
+name_ko: "스피드"
+name_en: "Speed"
+description_ko: "빠르게 즐기는 스피드 고스톱"
+description_en: "Fast-paced speed Gostop"
+
+score_threshold: 3
+use_ssangpi: true
+use_bomb: true
+use_swing: false
+use_chongtong: false
+use_pi_steal: true
+use_sweep: true
+use_gwang_bak: true
+use_pi_bak: true
+use_go_bak: true
+use_mung_tung: false
+use_godori: true
+speed_multiplier: 1.5

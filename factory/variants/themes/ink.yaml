@@ -1,0 +1,12 @@
+# 수묵화 테마 — 동양화 느낌
+id: ink
+name_ko: "수묵화 고스톱"
+name_en: "Ink Wash Gostop"
+description_ko: "수묵화 붓터치 감성의 고스톱"
+description_en: "Ink wash painting style Gostop"
+
+card_style: classic
+background: rice_paper       # 한지/화선지 질감
+seed_color: "0xFF37474F"     # 먹빛 회색
+font: "NanumMyeongjo"
+icon_style: brush_stroke     # 붓 터치 아이콘

@@ -1,0 +1,20 @@
+# 7점제 — 고점수 전략전
+id: seven_point
+name_ko: "7점제"
+name_en: "7-Point"
+description_ko: "7점부터 고/스톱, 전략적 플레이"
+description_en: "Go/Stop from 7 points, strategic play"
+
+score_threshold: 7
+use_ssangpi: true
+use_bomb: true
+use_swing: true
+use_chongtong: true
+use_pi_steal: true
+use_sweep: true
+use_gwang_bak: true
+use_pi_bak: true
+use_go_bak: true
+use_mung_tung: true
+use_godori: true
+speed_multiplier: 1.0

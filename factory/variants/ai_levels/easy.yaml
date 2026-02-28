@@ -1,0 +1,11 @@
+# Easy AI — 초보용
+id: easy
+name_ko: "쉬움"
+name_en: "Easy"
+description_ko: "초보자를 위한 쉬운 AI"
+description_en: "Easy AI for beginners"
+
+strategy: heuristic
+difficulty: easy     # HeuristicAgent.easy (50% optimal)
+think_time_ms: 500
+go_aggressiveness: 0.2
